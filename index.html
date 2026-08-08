@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>India Weather & Climate | Live Indicators, Trends & News</title>
+  <meta name="description" content="India Weather and Climate Intelligence Platform with Light Theme background, live city indicators, advisory precautions, historical climate trends, weather news, and user feedback.">
+
+  <!-- Style & Fonts -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- External Libraries (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- 3D Light Sky & Clouds Canvas Viewport -->
+  <div id="canvas-container"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="app-navbar">
+    <div class="brand-logo">
+      <i data-lucide="sun"></i>
+      <h1>INDIA WEATHER & CLIMATE</h1>
+      <span>LIVE HUB</span>
+    </div>
+
+    <!-- TOP NAVIGATION OPTIONS (Weather, Climate, Feedback) -->
+    <nav class="nav-tabs">
+      <button id="tab-btn-weather" class="tab-btn active" onclick="switchNavTab('weather')">
+        <i data-lucide="cloud-sun"></i> Weather
+      </button>
+      <button id="tab-btn-climate" class="tab-btn" onclick="switchNavTab('climate')">
+        <i data-lucide="bar-chart-3"></i> Climate
+      </button>
+      <button id="tab-btn-feedback" class="tab-btn" onclick="switchNavTab('feedback')">
+        <i data-lucide="message-square"></i> Feedback
+      </button>
+    </nav>
+
+    <div class="nav-actions">
+      <!-- Sound Toggle -->
+      <button id="audio-toggle-btn" class="btn-icon" title="Toggle Weather Audio Effects" onclick="toggleAudioSoundscape()">
+        <i data-lucide="volume-2"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- IMD Severe Weather Alert Banner -->
+  <div id="alerts-banner" class="alerts-banner">
+    <div class="alert-badge">
+      <div class="badge-dot"></div>
+      <span id="alert-type-text">IMD Severe Weather Watch</span>
+    </div>
+    <div class="alert-text" id="alert-summary-text">
+      Heavy monsoon rainfall & squally winds reported across regional sectors.
+    </div>
+    <button class="alert-action-btn" onclick="openAlertModal()">SAFETY ADVISORY</button>
+  </div>
+
+  <!-- Main Content Layout -->
+  <main class="main-layout">
+
+    <!-- ==================== TAB 1: LIVE WEATHER VIEW ==================== -->
+    <section id="view-weather" class="tab-view active">
+      <div class="weather-grid">
+
+        <!-- Sidebar Location Engine -->
+        <aside class="sidebar">
+          
+          <!-- Search Bar Box -->
+          <div class="glass-card search-card">
+            <div class="search-input-wrap">
+              <i data-lucide="search"></i>
+              <input type="text" id="city-search-input" class="search-input" placeholder="Search 110+ Indian cities, districts..." autocomplete="off">
+              <button class="geo-btn" title="Detect Current Location" onclick="detectUserLocation()">
+                <i data-lucide="crosshair"></i>
+              </button>
+              
+              <div id="search-results" class="search-results"></div>
+            </div>
+
+            <div class="region-chips">
+              <button class="chip active" onclick="filterByRegion('All')">All</button>
+              <button class="chip" onclick="filterByRegion('Metro')">Metros</button>
+              <button class="chip" onclick="filterByRegion('Himalayas')">Himalayas</button>
+              <button class="chip" onclick="filterByRegion('Coastal')">Coastal</button>
+              <button class="chip" onclick="filterByRegion('Desert')">Desert</button>
+            </div>
+          </div>
+
+          <!-- Cities List -->
+          <div class="glass-card popular-cities-card">
+            <div class="card-title">
+              <span>Top Indian Hubs</span>
+              <i data-lucide="map-pin"></i>
+            </div>
+            <div id="cities-list" class="city-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+        </aside>
+
+        <!-- Right Dashboard Panel -->
+        <div class="content-grid">
+
+          <!-- Hero Weather Overview Card -->
+          <div class="hero-weather-card">
+            <div class="hero-main">
+              <div class="hero-location">
+                <h2 id="current-city-name">New Delhi</h2>
+                <span id="current-state-name">Delhi NCR • India</span>
+              </div>
+
+              <div class="hero-temp-wrap">
+                <div id="current-temp" class="temp-huge">32°C</div>
+                <div class="temp-details">
+                  <div class="weather-condition-badge">
+                    <i id="current-weather-icon" data-lucide="sun"></i>
+                    <span id="current-condition">Sunny & Clear</span>
+                  </div>
+                  <div class="feels-like" style="margin-top: 0.2rem; color: var(--text-muted);">Feels like <strong id="feels-like-temp">35°C</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-stats">
+              <div class="stat-box">
+                <i data-lucide="droplets"></i>
+                <div class="stat-info">
+                  <span>Humidity</span>
+                  <strong id="stat-humidity">76%</strong>
+                </div>
+              </div>
+              <div class="stat-box">
+                <i data-lucide="wind"></i>
+                <div class="stat-info">
+                  <span>Wind Speed</span>
+                  <strong id="stat-wind">14 km/h</strong>
+                </div>
+              </div>
+              <div class="stat-box">
+                <i data-lucide="gauge"></i>
+                <div class="stat-info">
+                  <span>Pressure</span>
+                  <strong id="stat-pressure">1009 hPa</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Secondary Grid -->
+          <div class="dashboard-grid">
+
+            <!-- Condition Advisory & Precautions Card -->
+            <div class="glass-card advisory-card">
+              <div class="advisory-header">
+                <i data-lucide="shield-alert"></i>
+                <span id="advisory-title">IMD Weather Advisory & Safety Precautions</span>
+              </div>
+              <p id="advisory-desc" class="advisory-text">
+                Favorable seasonal weather active across the region. Keep hydrated during peak sun hours.
+              </p>
+              <div id="precautions-list" class="precautions-list">
+                <!-- Dynamically populated precautions -->
+              </div>
+            </div>
+
+            <!-- Hourly Forecast Carousel (Sun, Cloud, Rain Icons) -->
+            <div class="glass-card hourly-container">
+              <div class="card-title">
+                <span>Hourly Temperature & Condition Indicators</span>
+                <i data-lucide="clock"></i>
+              </div>
+              <div id="hourly-cards-wrap" class="hourly-scroll-wrap">
+                <!-- Dynamically populated hourly cards -->
+              </div>
+            </div>
+
+            <!-- AQI Widget -->
+            <div class="glass-card aqi-container">
+              <div class="card-title">
+                <span>Air Quality Index (AQI)</span>
+                <i data-lucide="activity"></i>
+              </div>
+
+              <div class="aqi-gauge-wrap">
+                <div class="aqi-number-box">
+                  <div id="aqi-val" class="aqi-num">142</div>
+                  <div id="aqi-label" class="aqi-status-tag" style="color: #d97706; font-weight: 700;">Moderate</div>
+                </div>
+              </div>
+
+              <div class="aqi-meter-bar">
+                <div id="aqi-indicator-dot" class="aqi-indicator" style="left: 45%;"></div>
+              </div>
+
+              <div class="aqi-components">
+                <div class="aqi-comp-item"><span>PM2.5</span><strong id="aqi-pm25">45 µg/m³</strong></div>
+                <div class="aqi-comp-item"><span>PM10</span><strong id="aqi-pm10">88 µg/m³</strong></div>
+                <div class="aqi-comp-item"><span>NO2</span><strong id="aqi-no2">22 ppb</strong></div>
+                <div class="aqi-comp-item"><span>O3</span><strong id="aqi-o3">34 ppb</strong></div>
+              </div>
+            </div>
+
+            <!-- 24-Hour Trend Chart Card -->
+            <div class="glass-card chart-card">
+              <div class="card-title">
+                <span>24-Hour Temperature & Rain Trend</span>
+                <i data-lucide="trending-up"></i>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="forecastChart"></canvas>
+              </div>
+            </div>
+
+            <!-- 7-Day Forecast Grid -->
+            <div class="glass-card" style="grid-column: span 3;">
+              <div class="card-title">
+                <span>7-Day Indian Regional Forecast</span>
+                <i data-lucide="calendar"></i>
+              </div>
+              <div id="forecast-7day-container" class="forecast-grid">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- WEATHER NEWS HUB SECTION (Floods, Droughts, Rain) -->
+          <div class="news-section">
+            <div class="card-title" style="font-size: 1.3rem;">
+              <span><i data-lucide="newspaper"></i> Live City Weather News & Climate Incidents</span>
+            </div>
+            <div id="news-grid-container" class="news-grid">
+              <!-- Dynamically populated news cards -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==================== TAB 2: CLIMATE VIEW ==================== -->
+    <section id="view-climate" class="tab-view">
+      <div class="climate-view-layout">
+        
+        <!-- Climate Landing Hero Card -->
+        <div class="glass-card climate-hero-card">
+          <div class="card-title" style="font-size: 1.4rem;">
+            <span><i data-lucide="globe-2"></i> India Climate Trends & Multi-Year Insights (2018 - 2026)</span>
+          </div>
+          <p style="font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; margin-top: 0.4rem;">
+            Analysis of seasonal precipitation anomalies, mean temperature shifts, and extreme weather events recorded across the Indian subcontinent over recent years.
+          </p>
+
+          <div class="climate-stats-grid">
+            <div class="c-stat-box">
+              <span>Mean Temp Shift</span>
+              <strong>+0.84 °C</strong>
+            </div>
+            <div class="c-stat-box">
+              <span>Monsoon Performance</span>
+              <strong>102% LPA</strong>
+            </div>
+            <div class="c-stat-box">
+              <span>Annual Extreme Events</span>
+              <strong>285 Reported</strong>
+            </div>
+            <div class="c-stat-box">
+              <span>Primary Driver</span>
+              <strong>SW Monsoon Surge</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historical Multi-Year Trend Charts -->
+        <div class="dashboard-grid">
+          <div class="glass-card" style="grid-column: span 2;">
+            <div class="card-title">
+              <span>India Temperature Anomaly Trend (2018 - 2026)</span>
+              <i data-lucide="trending-up"></i>
+            </div>
+            <div class="chart-wrap" style="height: 220px;">
+              <canvas id="climateTrendChart"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="card-title">
+              <span>Monsoon Rainfall Distribution (% LPA)</span>
+              <i data-lucide="bar-chart-2"></i>
+            </div>
+            <div class="chart-wrap" style="height: 220px;">
+              <canvas id="monsoonRainChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Searched City Climate Profile Deep-Dive -->
+        <div class="glass-card">
+          <div class="card-title" style="font-size: 1.25rem;">
+            <span><i data-lucide="map-pin"></i> Climate Profile for <strong id="climate-city-title">New Delhi</strong></span>
+          </div>
+
+          <div class="climate-stats-grid" style="margin-bottom: 1rem;">
+            <div class="c-stat-box">
+              <span>Climate Zone</span>
+              <strong id="c-zone-type">Semi-Arid Monsoonal</strong>
+            </div>
+            <div class="c-stat-box">
+              <span>Annual Rainfall</span>
+              <strong id="c-annual-rain">790 mm</strong>
+            </div>
+            <div class="c-stat-box">
+              <span>Avg Summer Peak</span>
+              <strong id="c-summer-max">41.5 °C</strong>
+            </div>
+            <div class="c-stat-box">
+              <span>Vulnerability Index</span>
+              <strong id="c-vulnerability" style="color: var(--accent-gold);">Heatwave & Smog</strong>
+            </div>
+          </div>
+
+          <div class="chart-wrap" style="height: 220px;">
+            <canvas id="cityMonthlyChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==================== TAB 3: FEEDBACK VIEW ==================== -->
+    <section id="view-feedback" class="tab-view">
+      <div class="feedback-container">
+        
+        <!-- Feedback Form Card -->
+        <div id="feedback-form-card" class="feedback-card">
+          <div class="card-title" style="font-size: 1.5rem; text-align: center; margin-bottom: 0.5rem;">
+            <span>Share Your Feedback</span>
+          </div>
+          <p style="text-align: center; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 2rem;">
+            Help us improve our weather indicators, climate insights, and city alerts across India.
+          </p>
+
+          <form id="feedback-form" onsubmit="handleFeedbackSubmit(event)">
+            <div class="form-group">
+              <label for="fb-name">Your Full Name</label>
+              <input type="text" id="fb-name" class="form-input" placeholder="e.g. Supriya Sharma" required>
+            </div>
+
+            <div class="form-group">
+              <label for="fb-email">Email Address</label>
+              <input type="email" id="fb-email" class="form-input" placeholder="name@example.com" required>
+            </div>
+
+            <div class="form-group">
+              <label for="fb-category">Feedback Category</label>
+              <select id="fb-category" class="form-select" required>
+                <option value="general">General Website Feedback</option>
+                <option value="weather_data">Weather / Forecast Accuracy</option>
+                <option value="climate_trends">Climate Trends Inquiry</option>
+                <option value="alerts">IMD City Alert Suggestion</option>
+              </select>
+            </div>
+
+            <!-- Text Box with 500 Letters Limit -->
+            <div class="form-group">
+              <label for="fb-message">Feedback Message (Max 500 characters)</label>
+              <div class="textarea-wrap">
+                <textarea id="fb-message" class="form-textarea" rows="5" maxlength="500" placeholder="Type your message here..." required oninput="updateCharCounter()"></textarea>
+                <div id="char-counter" class="char-counter">500 characters remaining</div>
+              </div>
+            </div>
+
+            <button type="submit" class="submit-btn">SUBMIT FEEDBACK</button>
+          </form>
+        </div>
+
+        <!-- THANK YOU VIEW CARD (Displayed at the end upon submission) -->
+        <div id="thank-you-card" class="thank-you-card">
+          <div class="thank-you-icon">
+            <i data-lucide="check"></i>
+          </div>
+          <h2>THANK YOU!</h2>
+          <p style="font-weight: 600; color: var(--text-main); margin-top: 0.5rem;">
+            Your feedback has been submitted successfully.
+          </p>
+          <p style="font-size: 0.88rem; margin-top: 0.4rem;">
+            We appreciate your input in helping us refine weather warnings and climate data for citizens across India.
+          </p>
+          <button class="submit-btn" style="margin-top: 1.5rem; width: auto; padding: 0.75rem 2rem;" onclick="resetFeedbackForm()">SUBMIT ANOTHER RESPONSE</button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Window -->
+  <div id="alert-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-alert-title"><i data-lucide="alert-triangle"></i> Severe Weather Alert</h3>
+        <button class="close-modal" onclick="closeAlertModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modal-alert-desc">Alert details will appear here.</p>
+        <div class="modal-instructions" style="background: rgba(254, 242, 242, 0.9); border-left: 3px solid var(--accent-red); padding: 0.85rem; border-radius: 0 8px 8px 0; margin-top: 0.8rem;">
+          <strong style="color: var(--accent-red); font-size: 0.85rem;">IMD Safety Precautions:</strong>
+          <ul id="modal-alert-list" style="margin-top: 0.4rem; padding-left: 1.2rem; font-size: 0.85rem;">
+            <li>Stay indoors during heavy downpours or extreme heatwave hours.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script src="js/citiesData.js"></script>
+  <script src="js/climateData.js"></script>
+  <script src="js/newsData.js"></script>
+  <script src="js/weatherApi.js"></script>
+  <script src="js/weather3d.js"></script>
+  <script src="js/alertsSystem.js"></script>
+  <script src="js/audioEngine.js"></script>
+  <script src="js/app.js"></script>
+  
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
