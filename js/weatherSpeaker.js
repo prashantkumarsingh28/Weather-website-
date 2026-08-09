@@ -215,18 +215,44 @@ class WeatherSpeaker {
 
   formatTimeHindi(timeStr) {
     if (!timeStr) return "";
-    const parts = timeStr.trim().split(' ');
-    if (parts.length < 2) return timeStr;
+    let clean = timeStr.trim();
+    let hours = 0;
+    let minutes = 0;
 
-    const timeParts = parts[0].split(':');
-    const hours = parseInt(timeParts[0], 10);
-    const minutes = parseInt(timeParts[1], 10);
-    const period = parts[1].toUpperCase();
+    if (clean.toUpperCase().includes('AM') || clean.toUpperCase().includes('PM')) {
+      const parts = clean.split(/\s+/);
+      const timeParts = parts[0].split(':');
+      hours = parseInt(timeParts[0], 10);
+      minutes = parseInt(timeParts[1] || '0', 10);
+      const period = parts[1].toUpperCase();
 
-    const periodStr = period === 'AM' ? 'सुबह' : 'शाम';
-    const minStr = minutes > 0 ? `बजकर ${minutes} मिनट` : 'बजे';
+      if (period === 'PM' && hours < 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+    } else {
+      const timeParts = clean.split(':');
+      hours = parseInt(timeParts[0], 10);
+      minutes = parseInt(timeParts[1] || '0', 10);
+    }
 
-    return `${periodStr} ${hours} ${minStr}`;
+    let dayPart = "सुबह"; // default morning
+    if (hours >= 12 && hours < 16) {
+      dayPart = "दोपहर"; // afternoon
+    } else if (hours >= 16 && hours < 20) {
+      dayPart = "शाम"; // evening
+    } else if (hours >= 20 || hours < 4) {
+      dayPart = "रात"; // night
+    } else {
+      dayPart = "सुबह"; // morning
+    }
+
+    let displayHours = hours % 12;
+    if (displayHours === 0) displayHours = 12;
+
+    if (minutes === 0) {
+      return `${dayPart} ${displayHours} बजे`;
+    } else {
+      return `${dayPart} ${displayHours} बजकर ${minutes} मिनट पर`;
+    }
   }
 
   getRainInfo(data, lang) {
@@ -244,7 +270,8 @@ class WeatherSpeaker {
       const rainHour = data.hourly.find(h => h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain')));
       if (rainHour) {
         if (lang === 'hi') {
-          return `${rainHour.time} बजे वर्षा का अनुमान है।`;
+          const formattedRainTime = this.formatTimeHindi(rainHour.time);
+          return `${formattedRainTime} वर्षा का अनुमान है।`;
         } else {
           return `Rain is expected around ${rainHour.time}.`;
         }
@@ -348,8 +375,9 @@ class WeatherSpeaker {
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = (this.lang === 'hi') ? 'hi-IN' : 'en-IN';
-        utterance.rate = (this.lang === 'hi') ? 0.86 : 0.90; // Natural, clear speed (not fast, not slow)
+        utterance.rate = (this.lang === 'hi') ? 0.95 : 0.95; // Fluent speed with minimal word gap
         utterance.pitch = 1.0;
+        utterance.volume = 1.0; // Read loud at maximum volume
 
         if (voice) {
           utterance.voice = voice;
@@ -410,6 +438,8 @@ class WeatherSpeaker {
       const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encoded}`;
 
       this.audioFallback = new Audio(url);
+      this.audioFallback.volume = 1.0; // Maximum loud volume
+      this.audioFallback.playbackRate = 1.05; // Fluent continuous speech without word gaps
       
       this.audioFallback.onended = () => {
         if (this.isSpeaking) playNextChunk();

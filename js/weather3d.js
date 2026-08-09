@@ -92,25 +92,25 @@ class Weather3DScene {
 
     const createCloudCluster = (x, y, z, scale) => {
       const cluster = new THREE.Group();
-      const puffGeo = new THREE.SphereGeometry(3.0, 16, 16);
+      const puffGeo = new THREE.SphereGeometry(2.4, 16, 16);
       const puffMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
-        roughness: 0.95,
+        roughness: 0.9,
         metalness: 0.05,
         transparent: true,
-        opacity: 0.9
+        opacity: 0.92
       });
 
       const numPuffs = 6 + Math.floor(Math.random() * 3);
       for (let i = 0; i < numPuffs; i++) {
         const puff = new THREE.Mesh(puffGeo, puffMat);
         puff.position.set(
-          (Math.random() - 0.5) * 4 * scale,
-          (Math.random() - 0.3) * 2 * scale,
-          (Math.random() - 0.5) * 3 * scale
+          (Math.random() - 0.5) * 3.5 * scale,
+          (Math.random() - 0.3) * 1.8 * scale,
+          (Math.random() - 0.5) * 2.8 * scale
         );
-        const s = (0.8 + Math.random() * 0.7) * scale;
-        puff.scale.set(s, s * 0.75, s);
+        const s = (0.8 + Math.random() * 0.6) * scale;
+        puff.scale.set(s, s * 0.65, s);
         cluster.add(puff);
       }
 
@@ -118,11 +118,12 @@ class Weather3DScene {
       return cluster;
     };
 
-    for (let i = 0; i < 18; i++) {
+    // Position compact clouds strictly in the upper half of the sky viewport
+    for (let i = 0; i < 20; i++) {
       const x = (Math.random() - 0.5) * 100;
-      const y = 8 + Math.random() * 20;
-      const z = -15 + (Math.random() - 0.5) * 55;
-      const scale = 1 + Math.random() * 1.6;
+      const y = 18 + Math.random() * 14; // Higher in the sky (upper half only)
+      const z = -20 + (Math.random() - 0.5) * 35;
+      const scale = 0.9 + Math.random() * 1.2;
 
       const cloud = createCloudCluster(x, y, z, scale);
       this.cloudsGroup.add(cloud);
@@ -136,16 +137,16 @@ class Weather3DScene {
   }
 
   createWeatherParticleSystems() {
-    const rainCount = 3000;
+    const rainCount = 4500;
     const rainGeo = new THREE.BufferGeometry();
-    const rainPositions = new Float32Array(rainCount * 2 * 3); // 2 vertices per raindrop line segment
+    const rainPositions = new Float32Array(rainCount * 2 * 3);
     this.rainVelocities = new Float32Array(rainCount);
 
     for (let i = 0; i < rainCount; i++) {
-      const x = (Math.random() - 0.5) * 100;
-      const y = Math.random() * 60;
-      const z = (Math.random() - 0.5) * 90;
-      const dropLength = 0.8 + Math.random() * 0.7;
+      const x = (Math.random() - 0.5) * 110;
+      const y = Math.random() * 65;
+      const z = (Math.random() - 0.5) * 85;
+      const dropLength = 1.2 + Math.random() * 1.0;
 
       // Top of raindrop
       rainPositions[i * 6] = x;
@@ -153,18 +154,18 @@ class Weather3DScene {
       rainPositions[i * 6 + 2] = z;
 
       // Bottom of raindrop
-      rainPositions[i * 6 + 3] = x - 0.15;
+      rainPositions[i * 6 + 3] = x - 0.25;
       rainPositions[i * 6 + 4] = y - dropLength;
       rainPositions[i * 6 + 5] = z;
 
-      this.rainVelocities[i] = 1.1 + Math.random() * 0.9;
+      this.rainVelocities[i] = 1.4 + Math.random() * 1.1;
     }
 
     rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
     const rainMat = new THREE.LineBasicMaterial({
-      color: 0x7dd3fc,
+      color: 0x38bdf8,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.95
     });
 
     this.rainParticles = new THREE.LineSegments(rainGeo, rainMat);
@@ -182,12 +183,12 @@ class Weather3DScene {
       this.rainParticles.visible = false;
 
       this.scene.fog.color.setHex(0xbae6fd);
-      this.sunLight.intensity = 2.8;
+      this.sunLight.intensity = 3.2;
 
       this.cloudClusters.forEach(c => {
         c.mesh.children.forEach(puff => {
           puff.material.color.setHex(0xffffff);
-          puff.material.opacity = 0.9;
+          puff.material.opacity = 0.96;
         });
       });
     } else if (category === "rainy" || category === "storm") {
@@ -196,13 +197,13 @@ class Weather3DScene {
       this.sunMotes.visible = false;
       this.rainParticles.visible = true;
 
-      this.scene.fog.color.setHex(0x94a3b8);
-      this.sunLight.intensity = 0.8;
+      this.scene.fog.color.setHex(0x64748b);
+      this.sunLight.intensity = (category === "storm") ? 0.4 : 0.9;
 
       this.cloudClusters.forEach(c => {
         c.mesh.children.forEach(puff => {
-          puff.material.color.setHex(0x64748b);
-          puff.material.opacity = 0.95;
+          puff.material.color.setHex(category === "storm" ? 0x334155 : 0x475569);
+          puff.material.opacity = 0.98;
         });
       });
     } else {
@@ -212,12 +213,12 @@ class Weather3DScene {
       this.rainParticles.visible = false;
 
       this.scene.fog.color.setHex(0xcbd5e1);
-      this.sunLight.intensity = 1.4;
+      this.sunLight.intensity = 1.6;
 
       this.cloudClusters.forEach(c => {
         c.mesh.children.forEach(puff => {
           puff.material.color.setHex(0xe2e8f0);
-          puff.material.opacity = 0.85;
+          puff.material.opacity = 0.92;
         });
       });
     }
@@ -249,8 +250,8 @@ class Weather3DScene {
 
     this.cloudClusters.forEach(c => {
       c.mesh.position.x += c.speed;
-      if (c.mesh.position.x > 50) {
-        c.mesh.position.x = -50;
+      if (c.mesh.position.x > 60) {
+        c.mesh.position.x = -60;
       }
     });
 
@@ -264,22 +265,22 @@ class Weather3DScene {
       for (let i = 0; i < dropCount; i++) {
         const vel = this.rainVelocities[i];
         pos[i * 6 + 1] -= vel;
-        pos[i * 6] -= vel * 0.06;
+        pos[i * 6] -= vel * 0.08;
 
         pos[i * 6 + 4] -= vel;
-        pos[i * 6 + 3] -= vel * 0.06;
+        pos[i * 6 + 3] -= vel * 0.08;
 
         if (pos[i * 6 + 1] < -5) {
-          const newX = (Math.random() - 0.5) * 100;
-          const newY = 55 + Math.random() * 10;
-          const newZ = (Math.random() - 0.5) * 90;
-          const dropLength = 0.8 + Math.random() * 0.7;
+          const newX = (Math.random() - 0.5) * 110;
+          const newY = 60 + Math.random() * 12;
+          const newZ = (Math.random() - 0.5) * 85;
+          const dropLength = 1.2 + Math.random() * 1.0;
 
           pos[i * 6] = newX;
           pos[i * 6 + 1] = newY;
           pos[i * 6 + 2] = newZ;
 
-          pos[i * 6 + 3] = newX - 0.15;
+          pos[i * 6 + 3] = newX - 0.25;
           pos[i * 6 + 4] = newY - dropLength;
           pos[i * 6 + 5] = newZ;
         }
@@ -287,9 +288,18 @@ class Weather3DScene {
       this.rainParticles.geometry.attributes.position.needsUpdate = true;
     }
 
-    if (this.weatherCategory === "storm" && Math.random() > 0.975) {
-      this.lightningLight.intensity = 15 + Math.random() * 10;
-      setTimeout(() => { this.lightningLight.intensity = 0; }, 80);
+    // Thunderstorm Lightning Flash Animation
+    if (this.weatherCategory === "storm" && Math.random() > 0.965) {
+      this.lightningLight.intensity = 45 + Math.random() * 35;
+      if (this.container) {
+        this.container.style.backgroundColor = "rgba(255, 255, 255, 0.25)";
+      }
+      setTimeout(() => {
+        this.lightningLight.intensity = 0;
+        if (this.container) {
+          this.container.style.backgroundColor = "transparent";
+        }
+      }, 70 + Math.random() * 50);
     }
 
     this.renderer.render(this.scene, this.camera);
