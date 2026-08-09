@@ -420,6 +420,65 @@
               </div>
             </div>
 
+            <!-- Sun & Daylight Cycle Widget -->
+            <div class="glass-card sun-cycle-card">
+              <div class="card-title">
+                <span>Sun & Daylight Cycle</span>
+                <i data-lucide="sun-medium"></i>
+              </div>
+
+              <div class="sun-cycle-grid">
+                <div class="sun-stat-item">
+                  <div class="sun-icon-bg rise"><i data-lucide="sunrise"></i></div>
+                  <div>
+                    <span class="sun-label">Sunrise Time</span>
+                    <strong id="stat-sunrise">06:05 AM</strong>
+                  </div>
+                </div>
+
+                <div class="sun-stat-item">
+                  <div class="sun-icon-bg set"><i data-lucide="sunset"></i></div>
+                  <div>
+                    <span class="sun-label">Sunset Time</span>
+                    <strong id="stat-sunset">07:12 PM</strong>
+                  </div>
+                </div>
+
+                <div class="sun-stat-item">
+                  <div class="sun-icon-bg day"><i data-lucide="sun"></i></div>
+                  <div>
+                    <span class="sun-label">Daylight Duration</span>
+                    <strong id="stat-day-hours">13 hrs 7 mins</strong>
+                  </div>
+                </div>
+
+                <div class="sun-stat-item">
+                  <div class="sun-icon-bg night"><i data-lucide="moon"></i></div>
+                  <div>
+                    <span class="sun-label">Nighttime Duration</span>
+                    <strong id="stat-night-hours">10 hrs 53 mins</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Today's Temp Range Highlight -->
+              <div class="sun-temp-bar">
+                <div class="s-temp-item"><i data-lucide="arrow-up-right" style="color: #dc2626;"></i> Max Temp: <strong id="stat-max-temp">35°C</strong></div>
+                <div class="s-temp-item"><i data-lucide="arrow-down-right" style="color: #0284c7;"></i> Min Temp: <strong id="stat-min-temp">24°C</strong></div>
+              </div>
+            </div>
+
+            <!-- Visual Do's & Don'ts Weather Advisory Card -->
+            <div class="glass-card visual-advisory-card" style="grid-column: span 3;">
+              <div class="card-title" style="font-size: 1.2rem;">
+                <span><i data-lucide="shield-check" style="color: var(--accent-emerald);"></i> Weather Safety Advisory: Visual Do's & Don'ts (क्या करें और क्या न करें)</span>
+              </div>
+
+              <div id="visual-precautions-container" class="visual-dos-donts-grid">
+                <!-- Dynamically populated with Do's (Green) & Don'ts (Red) and Animated Illustrations -->
+              </div>
+            </div>
+
             <!-- Hourly Forecast Carousel (Sun, Cloud, Rain Icons) -->
             <div class="glass-card hourly-container">
               <div class="card-title">

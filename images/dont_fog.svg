@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <rect width="200" height="200" rx="24" fill="#fef2f2" />
+  <!-- Smog Cloud & Garbage Fire Warning -->
+  <path d="M 50,90 Q 70,80 90,90 T 130,90 T 160,90" stroke="#94a3b8" stroke-width="6" fill="none" stroke-linecap="round" />
+  <path d="M 40,115 Q 65,105 90,115 T 140,115 T 165,115" stroke="#64748b" stroke-width="6" fill="none" stroke-linecap="round" />
+  <polygon points="100,165 90,140 100,145 110,130 115,150 125,135 120,165" fill="#f97316" />
+  <!-- Red Cross Badge -->
+  <circle cx="165" cy="35" r="20" fill="#dc2626" />
+  <line x1="153" y1="23" x2="177" y2="47" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+  <line x1="177" y1="23" x2="153" y2="47" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+</svg>

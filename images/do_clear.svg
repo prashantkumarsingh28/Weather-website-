@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <rect width="200" height="200" rx="24" fill="#ecfdf5" />
+  <!-- Pleasant Walking Silhouette & Hydration -->
+  <circle cx="100" cy="70" r="16" fill="#059669" />
+  <path d="M 100,90 L 100,135 M 100,105 L 80,120 M 100,105 L 120,120 M 100,135 L 85,165 M 100,135 L 115,165" stroke="#059669" stroke-width="6" stroke-linecap="round" fill="none" />
+  <!-- Green Check Badge -->
+  <circle cx="165" cy="35" r="20" fill="#059669" />
+  <path d="M 155,35 L 162,42 L 175,28" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" />
+</svg>

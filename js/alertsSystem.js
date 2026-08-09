@@ -7,6 +7,7 @@ class AlertsSystem {
     const precip = cityData.precipitation;
     const region = cityData.region;
     const cityName = cityData.city;
+    const category = cityData.category || "cloudy";
 
     // 1. IMD Heatwave Warning
     if (temp >= 38 || (region.includes("Desert") && temp >= 37)) {
@@ -21,12 +22,26 @@ class AlertsSystem {
           "Drink frequent water, ORS, or natural buttermilk.",
           "Wear lightweight, light-colored cotton clothing."
         ],
+        dos: [
+          "Drink plenty of water, coconut water, or ORS frequently.",
+          "Wear lightweight, loose-fitting, light-colored cotton clothes.",
+          "Use a wide-brim sun hat, UV sunglasses, or umbrella outdoors.",
+          "Keep indoor rooms well-ventilated and cool."
+        ],
+        donts: [
+          "Do NOT step out in direct sun during peak hours (12 PM - 4 PM).",
+          "Do NOT leave children or pets inside parked vehicles.",
+          "Avoid heavy physical exertion during hot afternoon hours.",
+          "Avoid alcohol, tea, and carbonated soft drinks that dehydrate."
+        ],
+        doImage: "./images/do_sun.svg",
+        dontImage: "./images/dont_sun.svg",
         icon: "sun"
       });
     }
 
     // 2. Heavy Monsoon Downpour & Flood Advisory
-    if (precip >= 10 || cityData.category === "storm" || (region.includes("Coastal") && humidity > 85)) {
+    if (precip >= 10 || category === "storm" || (region.includes("Coastal") && humidity > 85)) {
       alerts.push({
         id: "monsoon_flood",
         level: precip >= 25 ? "RED" : "ORANGE",
@@ -38,6 +53,20 @@ class AlertsSystem {
           "Fishermen advised to avoid venturing into open seas.",
           "Keep emergency flashlights and power banks charged."
         ],
+        dos: [
+          "Carry a sturdy waterproof umbrella or raincoat when stepping out.",
+          "Drive slowly with low-beam headlights on wet roads.",
+          "Unplug electrical appliances during lightning or thunderstorms.",
+          "Keep emergency phone numbers, flashlights, and power banks ready."
+        ],
+        donts: [
+          "Do NOT touch electric poles, transformers, or fallen power lines.",
+          "Do NOT drive or walk through flooded underpasses or waterlogged roads.",
+          "Do NOT take shelter under tall trees during lightning or thunder.",
+          "Avoid standing near swollen river banks or unstable slopes."
+        ],
+        doImage: "./images/do_rain.svg",
+        dontImage: "./images/dont_rain.svg",
         icon: "cloud-rain-wind"
       });
     }
@@ -55,6 +84,18 @@ class AlertsSystem {
           "Avoid intense physical exercise or morning jogging outdoors.",
           "Use indoor air purifiers where available."
         ],
+        dos: [
+          "Wear an N95 or N99 mask when stepping outdoors.",
+          "Use indoor air purifiers and keep windows closed during smog hours.",
+          "Drink warm water and herbal tea to soothe respiratory airways."
+        ],
+        donts: [
+          "Do NOT perform strenuous outdoor workouts during high AQI hours.",
+          "Do NOT burn garbage, dry leaves, or wood outdoors.",
+          "Avoid smoking or using unventilated indoor stoves."
+        ],
+        doImage: "./images/do_fog.svg",
+        dontImage: "./images/dont_fog.svg",
         icon: "wind"
       });
     }
@@ -71,6 +112,17 @@ class AlertsSystem {
           "Carry a light umbrella for sudden afternoon sun or light drizzle.",
           "Maintain daily hydration."
         ],
+        dos: [
+          "Enjoy outdoor activities and outdoor walks in pleasant weather.",
+          "Maintain healthy daily hydration and balanced nutrition.",
+          "Keep a compact folding umbrella handy for sudden weather shifts."
+        ],
+        donts: [
+          "Avoid littering in public parks or water bodies.",
+          "Do NOT neglect hydration during prolonged outdoor trips."
+        ],
+        doImage: "./images/do_clear.svg",
+        dontImage: "./images/dont_clear.svg",
         icon: "sun"
       });
     }

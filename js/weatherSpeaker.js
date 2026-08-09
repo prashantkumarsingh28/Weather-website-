@@ -109,6 +109,32 @@ class WeatherSpeaker {
       "Panaji": "पणजी"
     };
 
+    this.hiStateMap = {
+      "Delhi NCR": "दिल्ली एनसीआर",
+      "Maharashtra": "महाराष्ट्र",
+      "Rajasthan": "राजस्थान",
+      "Himachal Pradesh": "हिमाचल प्रदेश",
+      "Tamil Nadu": "तमिलनाडु",
+      "Karnataka": "कर्नाटक",
+      "West Bengal": "पश्चिम बंगाल",
+      "Uttar Pradesh": "उत्तर प्रदेश",
+      "Gujarat": "गुजरात",
+      "Punjab": "पंजाब",
+      "Bihar": "बिहार",
+      "Assam": "असम",
+      "Odisha": "ओडिशा",
+      "Telangana": "तेलंगाना",
+      "Kerala": "केरल",
+      "Madhya Pradesh": "मध्य प्रदेश",
+      "Haryana": "हरियाणा",
+      "Uttarakhand": "उत्तराखंड",
+      "Jammu & Kashmir": "जम्मू और कश्मीर",
+      "Ladakh": "लद्दाख",
+      "Goa": "गोवा",
+      "Chhattisgarh": "छत्तीसगढ़",
+      "Jharkhand": "झारखंड"
+    };
+
     if (this.synth) {
       this.loadVoices();
       if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
@@ -143,7 +169,7 @@ class WeatherSpeaker {
     if (this.isSpeaking) {
       this.stop();
       if (this.currentData) {
-        setTimeout(() => this.speak(this.currentData), 100);
+        setTimeout(() => this.speak(this.currentData), 120);
       }
     } else if (this.currentData) {
       this.updateTranscriptPreview(this.currentData);
@@ -177,6 +203,32 @@ class WeatherSpeaker {
     return this.hiCityMap[cityName] || cityName;
   }
 
+  getHindiStateName(stateName) {
+    if (!stateName) return "";
+    for (const [key, val] of Object.entries(this.hiStateMap)) {
+      if (stateName.toLowerCase().includes(key.toLowerCase())) {
+        return val;
+      }
+    }
+    return stateName;
+  }
+
+  formatTimeHindi(timeStr) {
+    if (!timeStr) return "";
+    const parts = timeStr.trim().split(' ');
+    if (parts.length < 2) return timeStr;
+
+    const timeParts = parts[0].split(':');
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+    const period = parts[1].toUpperCase();
+
+    const periodStr = period === 'AM' ? 'सुबह' : 'शाम';
+    const minStr = minutes > 0 ? `बजकर ${minutes} मिनट` : 'बजे';
+
+    return `${periodStr} ${hours} ${minStr}`;
+  }
+
   getRainInfo(data, lang) {
     const isRainingNow = data.precipitation > 0 || 
       (data.condition && (
@@ -187,45 +239,54 @@ class WeatherSpeaker {
       ));
 
     if (isRainingNow) {
-      return lang === 'hi' ? "अभी बारिश जारी है।" : "Rain active.";
+      return lang === 'hi' ? "अभी क्षेत्र में वर्षा हो रही है।" : "Rain is currently active.";
     }
 
     if (data.hourly && data.hourly.length > 0) {
       const rainHour = data.hourly.find(h => h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain')));
       if (rainHour) {
         if (lang === 'hi') {
-          return `${rainHour.time} बजे बारिश का अनुमान है।`;
+          return `${rainHour.time} बजे वर्षा का अनुमान है।`;
         } else {
-          return `Rain likely around ${rainHour.time}.`;
+          return `Rain is expected around ${rainHour.time}.`;
         }
       }
     }
 
-    return lang === 'hi' ? "आज बारिश की संभावना कम है।" : "No heavy rain expected today.";
+    return lang === 'hi' ? "आज भारी वर्षा का अनुमान नहीं है।" : "No heavy rain expected today.";
   }
 
   generateSpeechText(data, lang = this.lang) {
     if (!data) return "";
 
     const cityName = data.city;
+    const stateName = data.state || "";
     const temp = data.temp;
+    const feelsLike = data.feelsLike || temp;
+    const maxTemp = data.maxTemp || temp + 3;
+    const minTemp = data.minTemp || temp - 5;
     const windSpeed = data.windSpeed;
     const condition = data.condition || "";
+    const sunrise = data.sunrise || "06:05 AM";
+    const sunset = data.sunset || "07:12 PM";
     const aqiVal = data.aqi ? data.aqi.value : "--";
     const aqiLabel = data.aqi ? data.aqi.status.label : "Moderate";
 
     if (lang === 'hi') {
       const cityHi = this.getHindiCityName(cityName);
+      const stateHi = this.getHindiStateName(stateName);
       const conditionHi = this.getHindiCondition(condition);
       const aqiLabelHi = this.getHindiAqiLabel(aqiLabel);
+      const sunriseHi = this.formatTimeHindi(sunrise);
+      const sunsetHi = this.formatTimeHindi(sunset);
       const rainTextHi = this.getRainInfo(data, 'hi');
       
-      // Brief, crisp Hindi speech without duplicate words
-      return `${cityHi} में तापमान ${temp} डिग्री सेल्सियस है। ${conditionHi}। हवा की गति ${windSpeed} किलोमीटर प्रति घंटा है। वायु गुणवत्ता सूचकांक ${aqiVal} यानी ${aqiLabelHi} है। ${rainTextHi}`;
+      // Clear Devanagari Hindi speech with moderate pace & full details
+      return `${cityHi} ${stateHi} के लिए मौसम समाचार। वर्तमान तापमान ${temp} डिग्री सेल्सियस है, जो ${feelsLike} डिग्री जैसा लग रहा है। आज का अधिकतम तापमान ${maxTemp} डिग्री और न्यूनतम तापमान ${minTemp} डिग्री सेल्सियस रहेगा। मौसम ${conditionHi} है। सूर्योदय ${sunriseHi} और सूर्यास्त ${sunsetHi} होगा। हवा की गति ${windSpeed} किलोमीटर प्रति घंटा है। वायु गुणवत्ता सूचकांक ${aqiVal} यानी ${aqiLabelHi} स्थिति में है। ${rainTextHi}`;
     } else {
       const rainTextEn = this.getRainInfo(data, 'en');
-      // Brief, crisp English speech
-      return `In ${cityName}, temperature is ${temp}°C with ${condition}. Wind speed ${windSpeed} km/h. AQI is ${aqiVal}, ${aqiLabel}. ${rainTextEn}`;
+      // Natural English speech with moderate pace & full details
+      return `Weather report for ${cityName}, ${stateName}. Current temperature is ${temp}°C, feeling like ${feelsLike}°C with ${condition}. Today's maximum temperature is ${maxTemp}°C and minimum temperature is ${minTemp}°C. Sunrise at ${sunrise} and sunset at ${sunset}. Wind speed is ${windSpeed} kilometers per hour. AQI is ${aqiVal}, ${aqiLabel}. ${rainTextEn}`;
     }
   }
 
@@ -259,48 +320,51 @@ class WeatherSpeaker {
 
     const voice = this.getBestVoice(this.lang);
 
-    // If Hindi and no native browser voice is installed, use Google TTS Web Audio Stream fallback
-    if (this.lang === 'hi' && !voice) {
-      this.speakAudioFallback(text, 'hi');
-      return;
-    }
+    // Delay slightly to ensure previous speech synthesis queue has completely canceled
+    setTimeout(() => {
+      // If Hindi and no native browser voice is installed, use Google TTS Web Audio Stream fallback
+      if (this.lang === 'hi' && !voice) {
+        this.speakAudioFallback(text, 'hi');
+        return;
+      }
 
-    if (!this.synth) {
-      this.speakAudioFallback(text, this.lang);
-      return;
-    }
+      if (!this.synth) {
+        this.speakAudioFallback(text, this.lang);
+        return;
+      }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = this.lang === 'hi' ? 'hi-IN' : 'en-IN';
-    utterance.rate = 1.05; // Natural speech rate
-    utterance.pitch = 1.0;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = this.lang === 'hi' ? 'hi-IN' : 'en-IN';
+      utterance.rate = 0.92; // Moderate, clear, articulate speech rate
+      utterance.pitch = 1.0;
 
-    if (voice) {
-      utterance.voice = voice;
-    }
+      if (voice) {
+        utterance.voice = voice;
+      }
 
-    utterance.onstart = () => {
-      this.isSpeaking = true;
-      this.updateUIState(true);
-    };
+      utterance.onstart = () => {
+        this.isSpeaking = true;
+        this.updateUIState(true);
+      };
 
-    utterance.onend = () => {
-      this.isSpeaking = false;
-      this.updateUIState(false);
-    };
+      utterance.onend = () => {
+        this.isSpeaking = false;
+        this.updateUIState(false);
+      };
 
-    utterance.onerror = (err) => {
-      console.warn("SpeechSynthesis error, falling back to Web Audio TTS:", err);
-      this.isSpeaking = false;
-      this.updateUIState(false);
-      this.speakAudioFallback(text, this.lang);
-    };
+      utterance.onerror = (err) => {
+        console.warn("SpeechSynthesis error, falling back to Web Audio TTS:", err);
+        this.isSpeaking = false;
+        this.updateUIState(false);
+        this.speakAudioFallback(text, this.lang);
+      };
 
-    try {
-      this.synth.speak(utterance);
-    } catch (e) {
-      this.speakAudioFallback(text, this.lang);
-    }
+      try {
+        this.synth.speak(utterance);
+      } catch (e) {
+        this.speakAudioFallback(text, this.lang);
+      }
+    }, 75);
   }
 
   speakAudioFallback(text, lang = 'hi') {

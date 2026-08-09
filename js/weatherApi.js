@@ -104,6 +104,28 @@ class WeatherAPI {
       o3 = Math.round(aqiData.current.ozone || 30);
     }
 
+    const sunriseStr = data.daily?.sunrise ? new Date(data.daily.sunrise[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "06:05 AM";
+    const sunsetStr = data.daily?.sunset ? new Date(data.daily.sunset[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "07:12 PM";
+    
+    // Calculate Day Hours & Night Hours
+    let dayMinutes = 13 * 60 + 7; // Default ~13h 7m
+    if (data.daily?.sunrise && data.daily?.sunset) {
+      const srDate = new Date(data.daily.sunrise[0]);
+      const ssDate = new Date(data.daily.sunset[0]);
+      const diffMs = ssDate - srDate;
+      if (diffMs > 0) {
+        dayMinutes = Math.round(diffMs / (1000 * 60));
+      }
+    }
+    const dayH = Math.floor(dayMinutes / 60);
+    const dayM = dayMinutes % 60;
+    const nightMinutes = (24 * 60) - dayMinutes;
+    const nightH = Math.floor(nightMinutes / 60);
+    const nightM = nightMinutes % 60;
+
+    const maxTempToday = daily.length > 0 ? daily[0].maxTemp : Math.round(curr.temperature_2m) + 3;
+    const minTempToday = daily.length > 0 ? daily[0].minTemp : Math.round(curr.temperature_2m) - 5;
+
     return {
       city: city.name,
       state: city.state,
@@ -112,6 +134,8 @@ class WeatherAPI {
       lon: city.lon,
       temp: Math.round(curr.temperature_2m),
       feelsLike: Math.round(curr.apparent_temperature),
+      maxTemp: maxTempToday,
+      minTemp: minTempToday,
       humidity: curr.relative_humidity_2m,
       windSpeed: Math.round(curr.wind_speed_10m),
       windDir: curr.wind_direction_10m,
@@ -123,8 +147,10 @@ class WeatherAPI {
       category: codeInfo.category,
       isDay: curr.is_day === 1,
       uvIndex: data.daily?.uv_index_max ? Math.round(data.daily.uv_index_max[0]) : 7,
-      sunrise: data.daily?.sunrise ? new Date(data.daily.sunrise[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "06:05 AM",
-      sunset: data.daily?.sunset ? new Date(data.daily.sunset[0]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "07:12 PM",
+      sunrise: sunriseStr,
+      sunset: sunsetStr,
+      dayHours: `${dayH} hrs ${dayM} mins`,
+      nightHours: `${nightH} hrs ${nightM} mins`,
       aqi: {
         value: aqiVal,
         status: this.getAqiStatus(aqiVal),
@@ -230,6 +256,8 @@ class WeatherAPI {
       lon: city.lon,
       temp: baseTemp,
       feelsLike: baseTemp + 2,
+      maxTemp: baseTemp + 4,
+      minTemp: baseTemp - 5,
       humidity: 75,
       windSpeed: 12,
       windDir: 210,
@@ -241,8 +269,10 @@ class WeatherAPI {
       category: category,
       isDay: true,
       uvIndex: 8,
-      sunrise: "06:02 AM",
-      sunset: "07:15 PM",
+      sunrise: "06:05 AM",
+      sunset: "07:12 PM",
+      dayHours: "13 hrs 7 mins",
+      nightHours: "10 hrs 53 mins",
       aqi: {
         value: city.name === "New Delhi" ? 220 : 85,
         status: this.getAqiStatus(city.name === "New Delhi" ? 220 : 85),

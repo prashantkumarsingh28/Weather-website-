@@ -202,6 +202,21 @@ function updateHeroDashboard(data) {
   document.getElementById('stat-wind').textContent = `${data.windSpeed} km/h`;
   document.getElementById('stat-pressure').textContent = `${data.pressure} hPa`;
 
+  // Sun & Daylight Cycle Widget Fields
+  const sunriseEl = document.getElementById('stat-sunrise');
+  const sunsetEl = document.getElementById('stat-sunset');
+  const dayHoursEl = document.getElementById('stat-day-hours');
+  const nightHoursEl = document.getElementById('stat-night-hours');
+  const maxTempEl = document.getElementById('stat-max-temp');
+  const minTempEl = document.getElementById('stat-min-temp');
+
+  if (sunriseEl) sunriseEl.textContent = data.sunrise || "06:05 AM";
+  if (sunsetEl) sunsetEl.textContent = data.sunset || "07:12 PM";
+  if (dayHoursEl) dayHoursEl.textContent = data.dayHours || "13 hrs 7 mins";
+  if (nightHoursEl) nightHoursEl.textContent = data.nightHours || "10 hrs 53 mins";
+  if (maxTempEl) maxTempEl.textContent = `${data.maxTemp || data.temp + 3}°C`;
+  if (minTempEl) minTempEl.textContent = `${data.minTemp || data.temp - 5}°C`;
+
   const lastUpdatedEl = document.getElementById('last-updated-text');
   if (lastUpdatedEl) {
     lastUpdatedEl.textContent = data.lastUpdated || new Date().toLocaleString('en-IN', {
@@ -230,8 +245,57 @@ function updateAdvisoryPrecautions(alert) {
         <span>${inst}</span>
       </div>
     `).join('');
-    lucide.createIcons();
   }
+
+  // Render Visual Do's & Don'ts Advisory Grid with Animated Illustrations
+  const visualContainer = document.getElementById('visual-precautions-container');
+  if (visualContainer) {
+    const dosList = alert.dos || [
+      "Drink plenty of water, coconut water, or ORS frequently.",
+      "Wear lightweight, loose-fitting cotton clothing.",
+      "Check daily weather forecasts before travelling outdoors."
+    ];
+    const dontsList = alert.donts || [
+      "Do NOT step out in direct sun during peak afternoon hours.",
+      "Do NOT ignore local weather warnings or flood advisories."
+    ];
+    const doImg = alert.doImage || "./images/do_clear.svg";
+    const dontImg = alert.dontImage || "./images/dont_clear.svg";
+
+    visualContainer.innerHTML = `
+      <!-- DO'S COLUMN (GREEN) -->
+      <div class="dos-card">
+        <div class="dos-header">
+          <div class="dos-badge"><i data-lucide="check-circle"></i> DO'S (क्या करें)</div>
+        </div>
+        <div class="dos-body">
+          <div class="visual-img-box">
+            <img src="${doImg}" alt="Do's Weather Guidelines" class="visual-advisory-img">
+          </div>
+          <ul class="dos-ul">
+            ${dosList.map(item => `<li><i data-lucide="check" class="check-icon"></i> <span>${item}</span></li>`).join('')}
+          </ul>
+        </div>
+      </div>
+
+      <!-- DON'TS COLUMN (RED) -->
+      <div class="donts-card">
+        <div class="donts-header">
+          <div class="donts-badge"><i data-lucide="x-circle"></i> DON'TS (क्या न करें)</div>
+        </div>
+        <div class="donts-body">
+          <div class="visual-img-box">
+            <img src="${dontImg}" alt="Don'ts Weather Guidelines" class="visual-advisory-img">
+          </div>
+          <ul class="donts-ul">
+            ${dontsList.map(item => `<li><i data-lucide="x" class="cross-icon"></i> <span>${item}</span></li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+
+  lucide.createIcons();
 }
 
 // Hourly Weather Cards Carousel Updater with Icons

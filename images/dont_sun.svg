@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="dontSunBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef2f2" />
+      <stop offset="100%" stop-color="#fee2e2" />
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="24" fill="url(#dontSunBg)" />
+  <!-- Hot Blazing Sun -->
+  <circle cx="100" cy="80" r="38" fill="#ef4444" opacity="0.15" />
+  <circle cx="100" cy="80" r="28" fill="#dc2626" />
+  <!-- Thermal Waves -->
+  <path d="M 60,135 Q 70,125 80,135 T 100,135 T 120,135 T 140,135" stroke="#ef4444" stroke-width="4" fill="none" stroke-linecap="round" />
+  <path d="M 65,150 Q 75,140 85,150 T 105,150 T 125,150 T 145,150" stroke="#f97316" stroke-width="4" fill="none" stroke-linecap="round" />
+  <!-- Red Cross Badge -->
+  <circle cx="165" cy="35" r="20" fill="#dc2626" />
+  <line x1="153" y1="23" x2="177" y2="47" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+  <line x1="177" y1="23" x2="153" y2="47" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+</svg>
