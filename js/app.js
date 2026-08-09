@@ -1,6 +1,8 @@
 let currentCity = INDIAN_CITIES[0]; // Default: New Delhi
 let scene3D = null;
 let audioEngine = null;
+let weatherSpeaker = null;
+let currentWeatherData = null;
 let forecastChart = null;
 let climateTrendChart = null;
 let monsoonRainChart = null;
@@ -11,8 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize 3D Light Sky & Volumetric Clouds
   scene3D = new Weather3DScene('canvas-container');
 
-  // Initialize Web Audio Engine
+  // Initialize Web Audio Engine & Weather Voice Speaker
   audioEngine = new WeatherAudioEngine();
+  weatherSpeaker = new WeatherSpeaker();
 
   // Populate Cities List & News Feed
   renderCitiesList(INDIAN_CITIES);
@@ -24,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load Initial Weather & Climate Data
   selectCity(currentCity);
 
+  // Default to Introduction view on page load
+  switchNavTab('intro');
+
   // Render Climate Tab Visuals
   initClimateCharts();
 });
@@ -32,11 +38,24 @@ document.addEventListener('DOMContentLoaded', () => {
 function switchNavTab(tabName) {
   // Update Tab Buttons UI
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(`tab-btn-${tabName}`).classList.add('active');
+  const activeTabBtn = document.getElementById(`tab-btn-${tabName}`);
+  if (activeTabBtn) activeTabBtn.classList.add('active');
 
   // Update View Sections
   document.querySelectorAll('.tab-view').forEach(view => view.classList.remove('active'));
-  document.getElementById(`view-${tabName}`).classList.add('active');
+  const activeView = document.getElementById(`view-${tabName}`);
+  if (activeView) activeView.classList.add('active');
+
+  // Control top nav speaker button visibility (ONLY visible on Weather tab)
+  const navSpeakerBtn = document.getElementById('speaker-nav-btn');
+  if (navSpeakerBtn) {
+    navSpeakerBtn.style.display = (tabName === 'weather') ? 'flex' : 'none';
+  }
+
+  // Stop active speech if user leaves weather tab
+  if (tabName !== 'weather' && weatherSpeaker) {
+    weatherSpeaker.stop();
+  }
 
   if (tabName === 'climate') {
     updateCityClimateProfile(currentCity);
@@ -99,6 +118,12 @@ async function selectCity(city) {
   const tagId = `city-temp-${city.name.replace(/[^a-zA-Z0-9]/g, '')}`;
   const tagEl = document.getElementById(tagId);
   if (tagEl) tagEl.textContent = `${data.temp}°C`;
+
+  // Update Weather Voice Speaker Widget Data
+  currentWeatherData = data;
+  if (weatherSpeaker) {
+    weatherSpeaker.updateWidgetData(data);
+  }
 
   // Update Climate Tab if active
   updateCityClimateProfile(city);
@@ -489,6 +514,18 @@ function toggleAudioSoundscape() {
   btn.classList.toggle('active', isPlaying);
 }
 
+function toggleWeatherSpeaker() {
+  if (weatherSpeaker && currentWeatherData) {
+    weatherSpeaker.toggle(currentWeatherData);
+  }
+}
+
+function setSpeakerLanguage(lang) {
+  if (weatherSpeaker) {
+    weatherSpeaker.setLanguage(lang);
+  }
+}
+
 function detectUserLocation() {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
@@ -513,3 +550,66 @@ function detectUserLocation() {
     );
   }
 }
+
+// Introduction Language Switcher (EN / HI)
+function setIntroLanguage(lang) {
+  const enBtn = document.getElementById('intro-lang-en');
+  const hiBtn = document.getElementById('intro-lang-hi');
+
+  if (lang === 'en') {
+    if (enBtn) enBtn.classList.add('active');
+    if (hiBtn) hiBtn.classList.remove('active');
+
+    document.querySelectorAll('.text-en').forEach(el => el.classList.remove('hidden'));
+    document.querySelectorAll('.text-hi').forEach(el => el.classList.add('hidden'));
+
+    document.querySelectorAll('[data-en]').forEach(el => {
+      el.textContent = el.getAttribute('data-en');
+    });
+  } else {
+    if (hiBtn) hiBtn.classList.add('active');
+    if (enBtn) enBtn.classList.remove('active');
+
+    document.querySelectorAll('.text-hi').forEach(el => el.classList.remove('hidden'));
+    document.querySelectorAll('.text-en').forEach(el => el.classList.add('hidden'));
+
+    document.querySelectorAll('[data-hi]').forEach(el => {
+      el.textContent = el.getAttribute('data-hi');
+    });
+  }
+}
+
+// HINDI WEATHER SHAYARI & QUOTES SYSTEM (FOOTER)
+const HINDI_WEATHER_SHAYARIS = [
+  { quote: '"काली घटाओं में छुपी ठंडी फुहार है, इस मौसम में खुशियों की बहार है..."', author: '— मौसम और कुदरत की ख़ूबसूरती' },
+  { quote: '"बरसात की भीगी रातों में, हवाओं की मीठी बातों में, मौसम का जादू छाया है..."', author: '— सावन का सुहाना पैगाम' },
+  { quote: '"हवाओं में खुशबू मिट्टी की सोंधी सोंधी, बारिश की बूंदों में छुपी जिंदगी नई नई..."', author: '— वर्षा ऋतु का अहसास' },
+  { quote: '"कभी धूप तो कभी छांव है मौसम, कुदरत का सबसे हसीन रंग है मौसम..."', author: '— प्रकृति का अनुपम मिजाज' },
+  { quote: '"बादलों की आगोश में सिमटा है आसमां, मौसम का मिजाज आज फिर से है सुहाना..."', author: '— गगन और बादलों की दास्तान' },
+  { quote: '"सर्द हवाओं का रुख बदला, सूरज की किरणों ने मन मोहा, कुदरत की इस सुहानी छांव में नया राग छेड़ा..."', author: '— मौसम का सुरमई एहसास' },
+  { quote: '"रिमझिम गिरती बारिश की बूँदें, हवाओं संग थिरकते पत्ते, मौसम जब मुस्कुराता है, तो हर दिल झूम उठता है..."', author: '— रिमझिम बारिश' },
+  { quote: '"सावन की पहली फुहार में, मिट्टी की महकती खुशबू में, मौसम कह रहा है एक नई कहानी..."', author: '— मिट्टी की सोंधी महक' },
+  { quote: '"धूप छांव का अनोखा खेल, नीले आसमां में बादलों का मेल, मौसम का यह सुंदर रूप मन को हर लेता है..."', author: '— आसमां का सुहाना दृश्य' },
+  { quote: '"ठंडी हवा का झोंका और आसमां में छाये बादल, मौसम की यह ख़ूबसूरत अदा बनाती है हर पल यादगार..."', author: '— सुहानी फुहार' }
+];
+
+let currentShayariIndex = 0;
+
+function nextWeatherShayari() {
+  currentShayariIndex = (currentShayariIndex + 1) % HINDI_WEATHER_SHAYARIS.length;
+  const item = HINDI_WEATHER_SHAYARIS[currentShayariIndex];
+
+  const textEl = document.getElementById('footer-shayari-text');
+  const authorEl = document.getElementById('footer-shayari-author');
+
+  if (textEl && authorEl) {
+    textEl.style.transition = 'opacity 0.25s ease';
+    textEl.style.opacity = '0';
+    setTimeout(() => {
+      textEl.textContent = item.quote;
+      authorEl.textContent = item.author;
+      textEl.style.opacity = '1';
+    }, 250);
+  }
+}
+

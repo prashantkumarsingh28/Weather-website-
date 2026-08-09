@@ -27,9 +27,12 @@
       <span>LIVE HUB</span>
     </div>
 
-    <!-- TOP NAVIGATION OPTIONS (Weather, Climate, Feedback) -->
+    <!-- TOP NAVIGATION OPTIONS (Intro, Weather, Climate, Feedback) -->
     <nav class="nav-tabs">
-      <button id="tab-btn-weather" class="tab-btn active" onclick="switchNavTab('weather')">
+      <button id="tab-btn-intro" class="tab-btn active" onclick="switchNavTab('intro')">
+        <i data-lucide="book-open"></i> Introduction
+      </button>
+      <button id="tab-btn-weather" class="tab-btn" onclick="switchNavTab('weather')">
         <i data-lucide="cloud-sun"></i> Weather
       </button>
       <button id="tab-btn-climate" class="tab-btn" onclick="switchNavTab('climate')">
@@ -41,8 +44,13 @@
     </nav>
 
     <div class="nav-actions">
+      <!-- Voice Speaker Narration Toggle -->
+      <button id="speaker-nav-btn" class="btn-icon" title="Listen Weather Report (English / Hindi Speaker)" onclick="toggleWeatherSpeaker()">
+        <i data-lucide="mic"></i>
+      </button>
+
       <!-- Sound Toggle -->
-      <button id="audio-toggle-btn" class="btn-icon" title="Toggle Weather Audio Effects" onclick="toggleAudioSoundscape()">
+      <button id="audio-toggle-btn" class="btn-icon" title="Toggle Weather Ambient Soundscape" onclick="toggleAudioSoundscape()">
         <i data-lucide="volume-2"></i>
       </button>
     </div>
@@ -63,8 +71,159 @@
   <!-- Main Content Layout -->
   <main class="main-layout">
 
+    <!-- ==================== TAB 0: INTRODUCTION VIEW ==================== -->
+    <section id="view-intro" class="tab-view active">
+      <div class="intro-container">
+        
+        <!-- Intro Hero Banner -->
+        <div class="glass-card intro-hero-card">
+          <div class="intro-hero-content">
+            <div class="intro-badge">
+              <i data-lucide="book-open"></i> ATMOSPHERIC SCIENCE • वायुमंडल एवं जलवायु विज्ञान
+            </div>
+            <h2>Introduction to Weather & Climate</h2>
+            <p class="intro-subtext">
+              मौसम और जलवायु का परिचय: जानें दैनिक मौसम और दीर्घकालिक जलवायु के बीच का अंतर उदाहरणों और जीवंत 3D चित्रों के माध्यम से।
+            </p>
+
+            <!-- Language Switcher for Intro -->
+            <div class="intro-lang-toggle">
+              <button id="intro-lang-en" class="lang-btn active" onclick="setIntroLanguage('en')">
+                🇬🇧 English
+              </button>
+              <button id="intro-lang-hi" class="lang-btn" onclick="setIntroLanguage('hi')">
+                🇮🇳 हिंदी (Hindi)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weather vs Climate Cards Grid -->
+        <div class="intro-grid">
+
+          <!-- Card 1: Definition of Weather -->
+          <div class="glass-card definition-card weather-def-card">
+            <div class="def-header">
+              <div class="def-icon-box">
+                <i data-lucide="cloud-sun"></i>
+              </div>
+              <div>
+                <h3 class="def-title" data-en="What is Weather?" data-hi="मौसम क्या है? (Definition of Weather)">What is Weather?</h3>
+                <span class="def-subtitle" data-en="Short-Term Atmospheric Conditions" data-hi="अल्पकालिक वायुमंडलीय स्थितियाँ">Short-Term Atmospheric Conditions</span>
+              </div>
+            </div>
+
+            <div class="def-body">
+              <p class="def-text text-en">
+                <strong>Weather</strong> refers to the day-to-day, short-term state of the atmosphere at a specific location and time. It fluctuates rapidly within minutes, hours, or days and includes elements like temperature, precipitation, humidity, wind speed, cloud cover, and atmospheric pressure.
+              </p>
+              <p class="def-text text-hi hidden">
+                <strong>मौसम (Weather)</strong> किसी स्थान विशेष पर वायुमंडल की दिन-प्रतिदिन और अल्पकालिक स्थिति को दर्शाता है। यह मिनटों, घंटों या दिनों में तेजी से बदलता है। इसमें तापमान, वर्षा, आर्द्रता, हवा की गति, बादलों का आवरण और वायुमंडलीय दबाव शामिल हैं।
+              </p>
+
+              <div class="def-media-box">
+                <img src="./images/weather_illustration.png" alt="Animated Weather Illustration" class="def-animated-img">
+                <div class="floating-badge badge-1"><i data-lucide="sun"></i> <span data-en="Sunny 34°C" data-hi="धूप 34°C">Sunny 34°C</span></div>
+                <div class="floating-badge badge-2"><i data-lucide="cloud-rain"></i> <span data-en="Rain Showers" data-hi="तेज बारिश">Rain Showers</span></div>
+              </div>
+
+              <div class="examples-box">
+                <h4><i data-lucide="sparkles"></i> <span data-en="Real-World Examples of Weather:" data-hi="मौसम के व्यावहारिक उदाहरण:">Real-World Examples of Weather:</span></h4>
+                <ul>
+                  <li><i data-lucide="check-circle-2"></i> <span data-en="A clear, hot sunny morning in New Delhi turning into a rainy evening." data-hi="नई दिल्ली में धूप भरी सुबह का दोपहर तक बारिश में बदल जाना।">A clear, hot sunny morning in New Delhi turning into a rainy evening.</span></li>
+                  <li><i data-lucide="check-circle-2"></i> <span data-en="A sudden heavy monsoon thunderstorm for 2 hours in Mumbai." data-hi="मुंबई में अचानक 2 घंटे के लिए भारी मानसूनी बारिश और बिजली कड़कना।">A sudden heavy monsoon thunderstorm for 2 hours in Mumbai.</span></li>
+                  <li><i data-lucide="check-circle-2"></i> <span data-en="Dense winter fog reducing visibility to zero on a December morning." data-hi="दिसंबर की सुबह घने कोहरे के कारण दृश्यता शून्य होना।">Dense winter fog reducing visibility to zero on a December morning.</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Definition of Climate -->
+          <div class="glass-card definition-card climate-def-card">
+            <div class="def-header">
+              <div class="def-icon-box climate-icon">
+                <i data-lucide="globe-2"></i>
+              </div>
+              <div>
+                <h3 class="def-title" data-en="What is Climate?" data-hi="जलवायु क्या है? (Definition of Climate)">What is Climate?</h3>
+                <span class="def-subtitle" data-en="Long-Term Weather Patterns (30+ Years)" data-hi="दीर्घकालिक मौसम पैटर्न (30+ वर्ष)">Long-Term Weather Patterns (30+ Years)</span>
+              </div>
+            </div>
+
+            <div class="def-body">
+              <p class="def-text text-en">
+                <strong>Climate</strong> represents the long-term pattern, statistical average weather conditions, and seasonal variations of a region recorded over an extended period (typically 30 years or more). While weather changes daily, climate changes very slowly over decades.
+              </p>
+              <p class="def-text text-hi hidden">
+                <strong>जलवायु (Climate)</strong> किसी विशिष्ट क्षेत्र में लंबे समय (आमतौर पर 30 वर्ष या उससे अधिक) में दर्ज किए गए मौसम के औसत पैटर्न और मौसमी बदलावों को दर्शाती है। मौसम जहाँ रोज बदलता है, वहीं जलवायु दशकों में बहुत धीरे-धीरे बदलती है।
+              </p>
+
+              <div class="def-media-box">
+                <img src="./images/climate_illustration.png" alt="Animated Climate Illustration" class="def-animated-img">
+                <div class="floating-badge badge-1"><i data-lucide="bar-chart-3"></i> <span data-en="30-Year Trend" data-hi="30-वर्षीय ट्रेंड">30-Year Trend</span></div>
+                <div class="floating-badge badge-2"><i data-lucide="snowflake"></i> <span data-en="Alpine & Desert" data-hi="हिमालय और मरुस्थल">Alpine & Desert</span></div>
+              </div>
+
+              <div class="examples-box">
+                <h4><i data-lucide="sparkles"></i> <span data-en="Real-World Examples of Climate:" data-hi="जलवायु के व्यावहारिक उदाहरण:">Real-World Examples of Climate:</span></h4>
+                <ul>
+                  <li><i data-lucide="check-circle-2"></i> <span data-en="The Hot Arid Desert climate of Thar in Rajasthan with low annual rainfall." data-hi="राजस्थान के थार क्षेत्र की गर्म शुष्क मरुस्थलीय जलवायु।">The Hot Arid Desert climate of Thar in Rajasthan with low annual rainfall.</span></li>
+                  <li><i data-lucide="check-circle-2"></i> <span data-en="The Alpine Cold Desert climate of Leh & Ladakh in the high Himalayas." data-hi="हिमालय क्षेत्र में लेह और लद्दाख की ठंडी अल्पाइन जलवायु।">The Alpine Cold Desert climate of Leh & Ladakh in the high Himalayas.</span></li>
+                  <li><i data-lucide="check-circle-2"></i> <span data-en="The Tropical Monsoon climate along the humid coastal regions of Western Ghats." data-hi="पश्चिमी घाट के तटीय इलाकों की उष्णकटिबंधीय मानसूनी जलवायु।">The Tropical Monsoon climate along the humid coastal regions of Western Ghats.</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Key Comparison Matrix -->
+        <div class="glass-card comparison-card">
+          <div class="card-title">
+            <span data-en="Key Differences: Weather vs. Climate" data-hi="मुख्य अंतर: मौसम बनाम जलवायु">Key Differences: Weather vs. Climate</span>
+            <i data-lucide="git-compare"></i>
+          </div>
+
+          <div class="table-responsive">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th data-en="Feature" data-hi="विशेषता">Feature</th>
+                  <th data-en="Weather (मौसम)" data-hi="मौसम (Weather)">Weather (मौसम)</th>
+                  <th data-en="Climate (जलवायु)" data-hi="जलवायु (Climate)">Climate (जलवायु)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong data-en="Time Scale" data-hi="समय अवधि">Time Scale</strong></td>
+                  <td data-en="Short-term (Hours to Days)" data-hi="अल्पकालिक (घंटे से दिन)">Short-term (Hours to Days)</td>
+                  <td data-en="Long-term (30+ Years average)" data-hi="दीर्घकालिक (30+ वर्ष औसत)">Long-term (30+ Years average)</td>
+                </tr>
+                <tr>
+                  <td><strong data-en="Variability" data-hi="परिवर्तनशीलता">Variability</strong></td>
+                  <td data-en="Changes constantly within minutes or hours" data-hi="मिनटों या घंटों में तेजी से बदलता है">Changes constantly within minutes or hours</td>
+                  <td data-en="Changes very slowly over centuries or decades" data-hi="दशकों या शताब्दियों में धीरे-धीरे बदलता है">Changes very slowly over centuries or decades</td>
+                </tr>
+                <tr>
+                  <td><strong data-en="Prediction" data-hi="पूर्वाग्रह / भविष्यवाणी">Prediction</strong></td>
+                  <td data-en="Forecasted using radar & hourly satellites" data-hi="रडार और प्रति घंटा उपग्रह से अनुमान">Forecasted using radar & hourly satellites</td>
+                  <td data-en="Analyzed using historical multi-decade statistics" data-hi="ऐतिहासिक बहु-दशकीय आँकड़ों से विश्लेषण">Analyzed using historical multi-decade statistics</td>
+                </tr>
+                <tr>
+                  <td><strong data-en="Example" data-hi="उदाहरण">Example</strong></td>
+                  <td data-en="Today it is 32°C and rainy in Delhi." data-hi="आज दिल्ली में 32°C तापमान और बारिश है।">Today it is 32°C and rainy in Delhi.</td>
+                  <td data-en="India experiences a tropical monsoon climate." data-hi="भारत में उष्णकटिबंधीय मानसूनी जलवायु है।">India experiences a tropical monsoon climate.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
     <!-- ==================== TAB 1: LIVE WEATHER VIEW ==================== -->
-    <section id="view-weather" class="tab-view active">
+    <section id="view-weather" class="tab-view">
       <div class="weather-grid">
 
         <!-- Sidebar Location Engine -->
@@ -148,6 +307,85 @@
                   <span>Pressure</span>
                   <strong id="stat-pressure">1009 hPa</strong>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Weather Speaker (Voice Narration Card) -->
+          <div class="glass-card weather-speaker-card">
+            <div class="speaker-card-header">
+              <div class="speaker-title-wrap">
+                <div class="speaker-pulse-icon" id="speaker-pulse-icon">
+                  <i data-lucide="volume-2"></i>
+                </div>
+                <div>
+                  <h3 class="speaker-title">Weather Voice Speaker & Narration</h3>
+                  <p class="speaker-subtitle">Live voice updates for Temperature, Wind Speed, AQI & Rain timings</p>
+                </div>
+              </div>
+              
+              <!-- Language Selector Switcher -->
+              <div class="lang-selector-group">
+                <button id="speaker-lang-en" class="lang-btn active" onclick="setSpeakerLanguage('en')">
+                  🇬🇧 English
+                </button>
+                <button id="speaker-lang-hi" class="lang-btn" onclick="setSpeakerLanguage('hi')">
+                  🇮🇳 हिंदी (Hindi)
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Spoken Highlights Bar -->
+            <div class="speaker-highlights">
+              <div class="highlight-chip">
+                <i data-lucide="thermometer"></i>
+                <div>
+                  <span class="chip-label">Temperature</span>
+                  <strong id="speaker-chip-temp">--°C</strong>
+                </div>
+              </div>
+              <div class="highlight-chip">
+                <i data-lucide="wind"></i>
+                <div>
+                  <span class="chip-label">Wind Speed</span>
+                  <strong id="speaker-chip-wind">-- km/h</strong>
+                </div>
+              </div>
+              <div class="highlight-chip">
+                <i data-lucide="activity"></i>
+                <div>
+                  <span class="chip-label">AQI Index</span>
+                  <strong id="speaker-chip-aqi">--</strong>
+                </div>
+              </div>
+              <div class="highlight-chip">
+                <i data-lucide="cloud-rain"></i>
+                <div>
+                  <span class="chip-label">Rainfall Time</span>
+                  <strong id="speaker-chip-rain">--</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Playback Control Bar & Live Wave Visualizer -->
+            <div class="speaker-controls-wrap">
+              <button id="speaker-play-btn" class="speaker-play-btn" onclick="toggleWeatherSpeaker()">
+                <i data-lucide="volume-2" id="speaker-btn-icon"></i>
+                <span id="speaker-btn-text">Speak Weather Report</span>
+              </button>
+
+              <div id="speaker-wave-anim" class="speaker-wave-anim hidden">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+
+            <!-- Speech Transcript Box -->
+            <div class="speaker-transcript-box">
+              <div class="transcript-label">
+                <i data-lucide="message-square-quote"></i> Live Spoken Script Preview:
+              </div>
+              <div id="speaker-transcript-text" class="transcript-text">
+                Click "Speak Weather Report" to listen to current temperature, wind speed, AQI, and rain timings in English or Hindi.
               </div>
             </div>
           </div>
@@ -403,6 +641,35 @@
 
   </main>
 
+  <!-- Weather Shayari & Quotes Footer (Visible on Every Page) -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="glass-card shayari-card">
+        <div class="shayari-header">
+          <div class="shayari-badge">
+            <i data-lucide="sparkles"></i> <span>मौसम का नग्मा • Weather Shayari & Quotes</span>
+          </div>
+          <button class="shayari-refresh-btn" onclick="nextWeatherShayari()" title="Change Shayari / दूसरा शेर देखें">
+            <i data-lucide="refresh-cw"></i> <span>नया शेर देखें</span>
+          </button>
+        </div>
+        
+        <p id="footer-shayari-text" class="shayari-quote">
+          "काली घटाओं में छुपी ठंडी फुहार है, इस मौसम में खुशियों की बहार है..."
+        </p>
+
+        <div class="shayari-footer-meta">
+          <span id="footer-shayari-author" class="shayari-author">— मौसम और कुदरत की ख़ूबसूरती</span>
+          <span class="shayari-lang-tag">हिन्दी शायरी</span>
+        </div>
+      </div>
+
+      <div class="footer-copyright">
+        <p>© 2026 India Weather & Climate Intelligence Platform • Live Indicators, AQI, Rain & Climate Science</p>
+      </div>
+    </div>
+  </footer>
+
   <!-- Modal Window -->
   <div id="alert-modal" class="modal-overlay">
     <div class="modal-card">
@@ -430,6 +697,7 @@
   <script src="./js/weather3d.js"></script>
   <script src="./js/alertsSystem.js"></script>
   <script src="./js/audioEngine.js"></script>
+  <script src="./js/weatherSpeaker.js"></script>
   <script src="./js/app.js"></script>
   
   <script>
