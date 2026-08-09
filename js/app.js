@@ -9,6 +9,33 @@ let monsoonRainChart = null;
 let cityMonthlyChart = null;
 let currentAlerts = [];
 
+// COOKIE HELPER FUNCTIONS (Save searched/selected cities)
+function setCookie(name, value, days = 365) {
+  const date = new Date();
+  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+  const expires = "expires=" + date.toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+  try {
+    localStorage.setItem(name, value);
+  } catch(e) {}
+}
+
+function getCookie(name) {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for(let i = 0; i < ca.length; i++) {
+    let c = ca[i].trim();
+    if (c.indexOf(nameEQ) === 0) {
+      return decodeURIComponent(c.substring(nameEQ.length, c.length));
+    }
+  }
+  try {
+    const localVal = localStorage.getItem(name);
+    if (localVal) return localVal;
+  } catch(e) {}
+  return null;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize 3D Light Sky & Volumetric Clouds
   scene3D = new Weather3DScene('canvas-container');
@@ -23,6 +50,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Setup Search Engine
   setupSearchEngine();
+
+  // Load Saved City from Cookie if available
+  const savedCityName = getCookie('last_searched_city');
+  if (savedCityName) {
+    const foundCity = INDIAN_CITIES.find(c => c.name.toLowerCase() === savedCityName.toLowerCase());
+    if (foundCity) {
+      currentCity = foundCity;
+    }
+  }
 
   // Load Initial Weather & Climate Data
   selectCity(currentCity);
@@ -86,6 +122,9 @@ function selectCityByName(cityName) {
 // Main City Selection Routine
 async function selectCity(city) {
   currentCity = city;
+
+  // Persist selected city to cookies & local storage
+  setCookie('last_searched_city', city.name, 365);
 
   // Highlight active city
   document.querySelectorAll('.city-row').forEach(row => row.classList.remove('active'));

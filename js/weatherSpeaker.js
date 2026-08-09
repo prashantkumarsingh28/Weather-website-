@@ -71,24 +71,24 @@ class WeatherSpeaker {
 
     if (isRainingNow) {
       return lang === 'hi' 
-        ? "वर्तमान में क्षेत्र में बारिश हो रही है।"
-        : "Rainfall is currently active in the area.";
+        ? "अभी बारिश जारी है।"
+        : "Rain active.";
     }
 
     if (data.hourly && data.hourly.length > 0) {
       const rainHour = data.hourly.find(h => h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain')));
       if (rainHour) {
         if (lang === 'hi') {
-          return `आज ${rainHour.time} बजे ${rainHour.pop}% संभावना के साथ बारिश होने का अनुमान है।`;
+          return `${rainHour.time} बजे बारिश (${rainHour.pop}%)।`;
         } else {
-          return `Rainfall is expected around ${rainHour.time} with a ${rainHour.pop}% probability.`;
+          return `Rain expected around ${rainHour.time} (${rainHour.pop}%).`;
         }
       }
     }
 
     return lang === 'hi'
-      ? "आज बारिश की कोई संभावना नहीं है।"
-      : "No rainfall is expected today.";
+      ? "आज बारिश नहीं होगी।"
+      : "No rain expected today.";
   }
 
   generateSpeechText(data, lang = this.lang) {
@@ -97,15 +97,16 @@ class WeatherSpeaker {
     const cityName = data.city;
     const temp = data.temp;
     const windSpeed = data.windSpeed;
+    const condition = data.condition || "";
     const aqiVal = data.aqi ? data.aqi.value : "--";
     const aqiLabel = data.aqi ? data.aqi.status.label : "Moderate";
     const rainText = this.getRainInfo(data, lang);
 
     if (lang === 'hi') {
       const aqiLabelHi = this.getHindiAqiLabel(aqiLabel);
-      return `${cityName} का मौसम अपडेट। वर्तमान तापमान ${temp} डिग्री सेल्सियस है। हवा की गति ${windSpeed} किलोमीटर प्रति घंटा है। वायु गुणवत्ता सूचकांक ${aqiVal} है, जो ${aqiLabelHi} श्रेणी में है। ${rainText}`;
+      return `${cityName}: ${temp}°C, ${condition}। हवा ${windSpeed} किमी/घंटा, AQI ${aqiVal} (${aqiLabelHi})। ${rainText}`;
     } else {
-      return `Weather update for ${cityName}. The current temperature is ${temp} degrees Celsius. Wind speed is ${windSpeed} kilometers per hour. The Air Quality Index is ${aqiVal}, which is ${aqiLabel}. ${rainText}`;
+      return `${cityName}: ${temp}°C, ${condition}. Wind ${windSpeed} km/h, AQI ${aqiVal} (${aqiLabel}). ${rainText}`;
     }
   }
 
@@ -152,7 +153,7 @@ class WeatherSpeaker {
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = this.lang === 'hi' ? 'hi-IN' : 'en-IN';
-    utterance.rate = 0.92;
+    utterance.rate = 1.18; // Faster speech rate
     utterance.pitch = 1.0;
 
     if (voice) {
