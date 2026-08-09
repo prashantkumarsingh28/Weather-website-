@@ -7,6 +7,108 @@ class WeatherSpeaker {
     this.voices = [];
     this.audioFallback = null;
 
+    this.hiConditionMap = {
+      "Clear Sky": "साफ़ धूप",
+      "Mainly Clear": "मुख्यतः साफ़",
+      "Partly Cloudy": "आंशिक रूप से बादल",
+      "Overcast": "छाए हुए बादल",
+      "Foggy": "कोहरा",
+      "Depositing Rime Fog": "सघन कोहरा",
+      "Light Drizzle": "हल्की बूंदाबांदी",
+      "Moderate Drizzle": "बूंदाबांदी",
+      "Heavy Drizzle": "तेज बूंदाबांदी",
+      "Slight Rain": "हल्की बारिश",
+      "Moderate Rain": "बारिश",
+      "Heavy Downpour": "भारी मूसलाधार बारिश",
+      "Slight Snowfall": "हल्की बर्फबारी",
+      "Moderate Snow": "बर्फबारी",
+      "Heavy Snowstorm": "भारी बर्फबारी",
+      "Rain Showers": "बारिश की फुहारें",
+      "Moderate Rain Showers": "तेज फुहारें",
+      "Violent Rain Torrent": "भीषण बारिश",
+      "Thunderstorm": "गर्जन के साथ तूफान",
+      "Thunderstorm with Hail": "ओलावृष्टि और तूफान",
+      "Heavy Severe Thunderstorm": "भीषण गर्जन और तूफान",
+      "Sunny & Clear": "साफ़ धूप"
+    };
+
+    this.hiCityMap = {
+      "New Delhi": "नई दिल्ली",
+      "Mumbai": "मुंबई",
+      "Kolkata": "कोलकाता",
+      "Bengaluru": "बेंगलुरु",
+      "Chennai": "चेन्नई",
+      "Hyderabad": "हैदराबाद",
+      "Ahmedabad": "अहमदाबाद",
+      "Pune": "पुणे",
+      "Jaipur": "जयपुर",
+      "Lucknow": "लखनऊ",
+      "Surat": "सूरत",
+      "Kanpur": "कानपुर",
+      "Nagpur": "नागपुर",
+      "Indore": "इंदौर",
+      "Thane": "ठाणे",
+      "Bhopal": "भोपाल",
+      "Visakhapatnam": "विशाखापट्टनम",
+      "Patna": "पटना",
+      "Vadodara": "वड़ोदरा",
+      "Ghaziabad": "गाजियाबाद",
+      "Ludhiana": "लुधियाना",
+      "Agra": "आगरा",
+      "Nashik": "नासिक",
+      "Ranchi": "राँची",
+      "Faridabad": "फरीदाबाद",
+      "Meerut": "मेरठ",
+      "Rajkot": "राजकोट",
+      "Varanasi": "वाराणसी",
+      "Srinagar": "श्रीनगर",
+      "Aurangabad": "औरंगाबाद",
+      "Dhanbad": "धनबाद",
+      "Amritsar": "अमृतसर",
+      "Navi Mumbai": "नवी मुंबई",
+      "Allahabad": "प्रयागराज",
+      "Prayagraj": "प्रयागराज",
+      "Howrah": "हावड़ा",
+      "Gwalior": "ग्वालियर",
+      "Jabalpur": "जबलपुर",
+      "Coimbatore": "कोयंबटूर",
+      "Vijayawada": "विजयवाड़ा",
+      "Jodhpur": "जोधपुर",
+      "Madurai": "मदुरै",
+      "Raipur": "रायपुर",
+      "Kota": "कोटा",
+      "Guwahati": "गुवाहाटी",
+      "Chandigarh": "चंडीगढ़",
+      "Solapur": "सोलापुर",
+      "Hubli": "हुबली",
+      "Bareilly": "बरेली",
+      "Mysore": "मैसूर",
+      "Moradabad": "मुरादाबाद",
+      "Gurgaon": "गुरुग्राम",
+      "Gurugram": "गुरुग्राम",
+      "Aligarh": "अलीगढ़",
+      "Jalandhar": "जालंधर",
+      "Tiruchirappalli": "तिरुचिरापल्ली",
+      "Bhubaneswar": "भुवनेश्वर",
+      "Salem": "सेलम",
+      "Mira-Bhayandar": "मीरा-भायंदर",
+      "Warangal": "वरंगल",
+      "Thiruvananthapuram": "तिरुवनंतपुरम",
+      "Dehradun": "देहरादून",
+      "Shimla": "शिमला",
+      "Nainital": "नैनीताल",
+      "Gangtok": "गंगटोक",
+      "Leh": "लेह",
+      "Ladakh": "लद्दाख",
+      "Jaisalmer": "जैसलमेर",
+      "Udaipur": "उदयपुर",
+      "Manali": "मनाली",
+      "Dharamshala": "धर्मशाला",
+      "Puducherry": "पुडुचेरी",
+      "Goa": "गोवा",
+      "Panaji": "पणजी"
+    };
+
     if (this.synth) {
       this.loadVoices();
       if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
@@ -22,6 +124,7 @@ class WeatherSpeaker {
   }
 
   setLanguage(lang) {
+    if (this.lang === lang) return;
     this.lang = lang;
     
     // Update language buttons active state in UI
@@ -40,7 +143,7 @@ class WeatherSpeaker {
     if (this.isSpeaking) {
       this.stop();
       if (this.currentData) {
-        this.speak(this.currentData);
+        setTimeout(() => this.speak(this.currentData), 100);
       }
     } else if (this.currentData) {
       this.updateTranscriptPreview(this.currentData);
@@ -60,6 +163,20 @@ class WeatherSpeaker {
     return map[statusLabel] || statusLabel;
   }
 
+  getHindiCondition(conditionStr) {
+    if (!conditionStr) return "साफ़ मौसम";
+    for (const [key, val] of Object.entries(this.hiConditionMap)) {
+      if (conditionStr.toLowerCase().includes(key.toLowerCase())) {
+        return val;
+      }
+    }
+    return conditionStr;
+  }
+
+  getHindiCityName(cityName) {
+    return this.hiCityMap[cityName] || cityName;
+  }
+
   getRainInfo(data, lang) {
     const isRainingNow = data.precipitation > 0 || 
       (data.condition && (
@@ -70,25 +187,21 @@ class WeatherSpeaker {
       ));
 
     if (isRainingNow) {
-      return lang === 'hi' 
-        ? "अभी बारिश जारी है।"
-        : "Rain active.";
+      return lang === 'hi' ? "अभी बारिश जारी है।" : "Rain active.";
     }
 
     if (data.hourly && data.hourly.length > 0) {
       const rainHour = data.hourly.find(h => h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain')));
       if (rainHour) {
         if (lang === 'hi') {
-          return `${rainHour.time} बजे बारिश (${rainHour.pop}%)।`;
+          return `${rainHour.time} बजे बारिश का अनुमान है।`;
         } else {
-          return `Rain expected around ${rainHour.time} (${rainHour.pop}%).`;
+          return `Rain likely around ${rainHour.time}.`;
         }
       }
     }
 
-    return lang === 'hi'
-      ? "आज बारिश नहीं होगी।"
-      : "No rain expected today.";
+    return lang === 'hi' ? "आज बारिश की संभावना कम है।" : "No heavy rain expected today.";
   }
 
   generateSpeechText(data, lang = this.lang) {
@@ -100,13 +213,19 @@ class WeatherSpeaker {
     const condition = data.condition || "";
     const aqiVal = data.aqi ? data.aqi.value : "--";
     const aqiLabel = data.aqi ? data.aqi.status.label : "Moderate";
-    const rainText = this.getRainInfo(data, lang);
 
     if (lang === 'hi') {
+      const cityHi = this.getHindiCityName(cityName);
+      const conditionHi = this.getHindiCondition(condition);
       const aqiLabelHi = this.getHindiAqiLabel(aqiLabel);
-      return `${cityName}: ${temp}°C, ${condition}। हवा ${windSpeed} किमी/घंटा, AQI ${aqiVal} (${aqiLabelHi})। ${rainText}`;
+      const rainTextHi = this.getRainInfo(data, 'hi');
+      
+      // Brief, crisp Hindi speech without duplicate words
+      return `${cityHi} में तापमान ${temp} डिग्री सेल्सियस है। ${conditionHi}। हवा की गति ${windSpeed} किलोमीटर प्रति घंटा है। वायु गुणवत्ता सूचकांक ${aqiVal} यानी ${aqiLabelHi} है। ${rainTextHi}`;
     } else {
-      return `${cityName}: ${temp}°C, ${condition}. Wind ${windSpeed} km/h, AQI ${aqiVal} (${aqiLabel}). ${rainText}`;
+      const rainTextEn = this.getRainInfo(data, 'en');
+      // Brief, crisp English speech
+      return `In ${cityName}, temperature is ${temp}°C with ${condition}. Wind speed ${windSpeed} km/h. AQI is ${aqiVal}, ${aqiLabel}. ${rainTextEn}`;
     }
   }
 
@@ -133,7 +252,7 @@ class WeatherSpeaker {
 
   speak(data) {
     this.currentData = data;
-    this.stop(); // Clear any existing speech/audio
+    this.stop(); // Thoroughly clear any running audio / synth queue
 
     const text = this.generateSpeechText(data, this.lang);
     this.updateTranscriptPreview(data);
@@ -153,7 +272,7 @@ class WeatherSpeaker {
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = this.lang === 'hi' ? 'hi-IN' : 'en-IN';
-    utterance.rate = 1.18; // Faster speech rate
+    utterance.rate = 1.05; // Natural speech rate
     utterance.pitch = 1.0;
 
     if (voice) {
@@ -187,7 +306,7 @@ class WeatherSpeaker {
   speakAudioFallback(text, lang = 'hi') {
     this.stop();
 
-    // Split text into short chunks for online TTS streaming API
+    // Split text into distinct sentences for streaming audio chunks
     const chunks = text.split(/[।.]+/).map(s => s.trim()).filter(s => s.length > 0);
     if (chunks.length === 0) return;
 
@@ -230,19 +349,24 @@ class WeatherSpeaker {
   }
 
   stop() {
+    this.isSpeaking = false;
+
     if (this.synth) {
       try {
         this.synth.cancel();
       } catch (e) {}
     }
+
     if (this.audioFallback) {
       try {
+        this.audioFallback.onended = null;
+        this.audioFallback.onerror = null;
         this.audioFallback.pause();
         this.audioFallback.currentTime = 0;
       } catch (e) {}
       this.audioFallback = null;
     }
-    this.isSpeaking = false;
+
     this.updateUIState(false);
   }
 

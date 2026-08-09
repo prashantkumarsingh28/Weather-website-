@@ -268,12 +268,25 @@
 
           <!-- Hero Weather Overview Card -->
           <div class="hero-weather-card">
-            <div class="hero-main">
+            <div class="hero-header-bar">
               <div class="hero-location">
                 <h2 id="current-city-name">New Delhi</h2>
                 <span id="current-state-name">Delhi NCR • India</span>
               </div>
+              
+              <div class="hero-update-action">
+                <button id="update-weather-btn" class="update-weather-btn" onclick="updateWeatherNow()" title="Update Live Weather Now">
+                  <i data-lucide="refresh-cw" id="update-btn-icon"></i>
+                  <span>Update Weather Now</span>
+                </button>
+                <div class="last-updated-badge" id="last-updated-container">
+                  <i data-lucide="clock"></i>
+                  <span>Last updated: <strong id="last-updated-text">Just now</strong></span>
+                </div>
+              </div>
+            </div>
 
+            <div class="hero-main">
               <div class="hero-temp-wrap">
                 <div id="current-temp" class="temp-huge">32°C</div>
                 <div class="temp-details">
@@ -456,9 +469,9 @@
             </div>
 
             <!-- 7-Day Forecast Grid -->
-            <div class="glass-card" style="grid-column: span 3;">
+            <div class="glass-card forecast-7day-card">
               <div class="card-title">
-                <span>7-Day Indian Regional Forecast</span>
+                <span id="forecast-7day-title">7-Day Weather Forecast for New Delhi</span>
                 <i data-lucide="calendar"></i>
               </div>
               <div id="forecast-7day-container" class="forecast-grid">
@@ -471,7 +484,7 @@
           <!-- WEATHER NEWS HUB SECTION (Floods, Droughts, Rain) -->
           <div class="news-section">
             <div class="card-title" style="font-size: 1.3rem;">
-              <span><i data-lucide="newspaper"></i> Live City Weather News & Climate Incidents</span>
+              <span><i data-lucide="newspaper"></i> Weather News & Bulletins (<span id="news-city-name">New Delhi</span>)</span>
             </div>
             <div id="news-grid-container" class="news-grid">
               <!-- Dynamically populated news cards -->

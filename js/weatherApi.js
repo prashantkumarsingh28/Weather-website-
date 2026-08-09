@@ -133,6 +133,14 @@ class WeatherAPI {
         no2: no2,
         o3: o3
       },
+      lastUpdated: new Date().toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
       hourly: hourly,
       daily: daily
     };
@@ -243,6 +251,14 @@ class WeatherAPI {
         no2: 24,
         o3: 30
       },
+      lastUpdated: new Date().toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
       hourly: hourly,
       daily: daily
     };

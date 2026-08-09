@@ -142,7 +142,8 @@ async function selectCity(city) {
   updateHourlyCards(data.hourly);
   updateAQIWidget(data.aqi);
   updateHourlyChart(data.hourly);
-  update7DayForecast(data.daily);
+  update7DayForecast(data.daily, data.city);
+  renderWeatherNewsFeed(data);
 
   // Update 3D Sky Visuals & Procedural Audio
   scene3D.setWeatherCategory(data.category);
@@ -168,6 +169,27 @@ async function selectCity(city) {
   updateCityClimateProfile(city);
 }
 
+// "Update Weather Now" Button Routine
+async function updateWeatherNow() {
+  const btnIcon = document.getElementById('update-btn-icon');
+  const btn = document.getElementById('update-weather-btn');
+  if (btnIcon) btnIcon.classList.add('spinning');
+  if (btn) btn.disabled = true;
+
+  try {
+    if (currentCity) {
+      await selectCity(currentCity);
+    }
+  } catch(e) {
+    console.warn("Weather update failed:", e);
+  } finally {
+    setTimeout(() => {
+      if (btnIcon) btnIcon.classList.remove('spinning');
+      if (btn) btn.disabled = false;
+    }, 500);
+  }
+}
+
 // Hero Weather Dashboard Updater
 function updateHeroDashboard(data) {
   document.getElementById('current-city-name').textContent = data.city;
@@ -179,6 +201,13 @@ function updateHeroDashboard(data) {
   document.getElementById('stat-humidity').textContent = `${data.humidity}%`;
   document.getElementById('stat-wind').textContent = `${data.windSpeed} km/h`;
   document.getElementById('stat-pressure').textContent = `${data.pressure} hPa`;
+
+  const lastUpdatedEl = document.getElementById('last-updated-text');
+  if (lastUpdatedEl) {
+    lastUpdatedEl.textContent = data.lastUpdated || new Date().toLocaleString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
 
   const iconEl = document.getElementById('current-weather-icon');
   if (iconEl) {
@@ -292,18 +321,33 @@ function updateHourlyChart(hourly) {
 }
 
 // 7-Day Forecast Updater
-function update7DayForecast(daily) {
+function update7DayForecast(daily, cityName = "") {
   const container = document.getElementById('forecast-7day-container');
-  if (!container) return;
+  const titleEl = document.getElementById('forecast-7day-title');
+
+  if (titleEl && cityName) {
+    titleEl.textContent = `7-Day Weather Forecast for ${cityName}`;
+  }
+
+  if (!container || !daily) return;
 
   container.innerHTML = daily.map(d => `
     <div class="forecast-day-card">
-      <div style="font-size: 0.8rem; font-weight: 600;">${d.day}</div>
-      <i data-lucide="${d.icon}"></i>
-      <div style="font-size: 0.8rem; font-weight: 700;">
-        <span>${d.maxTemp}°</span> <span style="color: var(--text-muted);">${d.minTemp}°</span>
+      <div class="f-day-header">
+        <span class="f-day-name">${d.day}</span>
+        <span class="f-date-tag">${d.date || ''}</span>
       </div>
-      <div style="font-size: 0.7rem; color: var(--accent-cyan);">${d.rainProb}% Rain</div>
+      <div class="f-icon-box">
+        <i data-lucide="${d.icon}"></i>
+      </div>
+      <div class="f-condition-text">${d.condition || ''}</div>
+      <div class="f-temp-range">
+        <span class="f-max">${d.maxTemp}°</span>
+        <span class="f-min">${d.minTemp}°</span>
+      </div>
+      <div class="f-rain-badge">
+        <i data-lucide="droplets"></i> ${d.rainProb}% Rain
+      </div>
     </div>
   `).join('');
 
@@ -311,25 +355,38 @@ function update7DayForecast(daily) {
 }
 
 // Render Weather News Feed Cards
-function renderWeatherNewsFeed() {
+function renderWeatherNewsFeed(cityData = null) {
   const container = document.getElementById('news-grid-container');
-  if (!container || typeof WEATHER_NEWS === 'undefined') return;
+  const newsCityTitle = document.getElementById('news-city-name');
+  if (!container) return;
 
-  container.innerHTML = WEATHER_NEWS.map(n => `
+  let newsList = [];
+  if (cityData && typeof getCityWeatherNews === 'function') {
+    if (newsCityTitle) newsCityTitle.textContent = `${cityData.city}, ${cityData.state}`;
+    newsList = getCityWeatherNews(cityData.city, cityData.state, cityData.condition);
+  } else if (typeof WEATHER_NEWS !== 'undefined') {
+    if (newsCityTitle) newsCityTitle.textContent = 'All Cities';
+    newsList = WEATHER_NEWS;
+  }
+
+  container.innerHTML = newsList.map(n => `
     <div class="news-card">
       <div>
         <div class="news-meta">
           <span class="news-tag" style="background: ${n.tagColor}">${n.category}</span>
-          <span class="news-date">${n.date}</span>
+          <span class="news-date"><i data-lucide="calendar" style="width: 13px; height: 13px; vertical-align: middle;"></i> ${n.date}</span>
         </div>
-        <h4>${n.title}</h4>
-        <p>${n.summary}</p>
+        <h4 class="news-title">${n.title}</h4>
+        <p class="news-summary">${n.summary}</p>
       </div>
-      <div style="margin-top: 0.8rem; font-size: 0.75rem; color: var(--accent-cyan); font-weight: 600;">
-        ${n.city}, ${n.state} • ${n.source}
+      <div class="news-publisher-bar">
+        <i data-lucide="building-2"></i>
+        <span>Publisher: <strong>${n.source}</strong></span>
       </div>
     </div>
   `).join('');
+
+  lucide.createIcons();
 }
 
 // INITIALIZE CLIMATE TAB CHARTS & CITY CLIMATE PROFILES
