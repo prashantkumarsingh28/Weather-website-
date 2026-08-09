@@ -2795,10 +2795,18 @@ i[data-lucide]:hover {
 /* Small Tablets & Mobile Devices (max-width: 768px) */
 @media (max-width: 768px) {
   html, body {
-    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden !important;
   }
   .app-navbar {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0.75rem;
+  }
+  .main-layout, .content-grid, .dashboard-grid, .sidebar, .glass-card, .news-section, .weather-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
   .alerts-banner {
     flex-direction: column;
@@ -2811,10 +2819,10 @@ i[data-lucide]:hover {
     overflow-wrap: break-word;
   }
   .main-layout {
-    padding: 1rem 0.6rem;
+    padding: 1rem 0.5rem;
   }
   .hero-weather-card {
-    padding: 1.25rem;
+    padding: 1.1rem;
   }
   .hero-header-bar {
     flex-direction: column;
@@ -2853,8 +2861,18 @@ i[data-lucide]:hover {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+  .precautions-list {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .sun-temp-bar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
   .chart-card, .visual-advisory-card, .forecast-7day-card, .aqi-container, .advisory-card, .sun-cycle-card, .hourly-container {
     grid-column: 1 / -1 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   .visual-dos-donts-grid {
     grid-template-columns: 1fr;
@@ -2914,23 +2932,27 @@ i[data-lucide]:hover {
 /* Extra Small Smartphones (max-width: 480px) */
 @media (max-width: 480px) {
   .brand-logo h1 {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
   }
   .brand-logo span {
     display: none;
   }
+  .net-status-badge span#net-status-text {
+    font-size: 0.7rem;
+  }
   .nav-actions {
-    gap: 0.4rem;
+    gap: 0.3rem;
   }
   .btn-icon {
-    padding: 0.5rem;
+    padding: 0.45rem;
   }
   .tab-btn {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.78rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.75rem;
   }
   .temp-huge {
-    font-size: 2.8rem;
+    font-size: 2.6rem;
   }
   .speaker-highlights {
     grid-template-columns: 1fr;
@@ -2944,6 +2966,9 @@ i[data-lucide]:hover {
   .forecast-grid {
     grid-template-columns: 1fr;
   }
+  .precautions-list {
+    grid-template-columns: 1fr;
+  }
   .hero-update-action {
     flex-direction: column;
     align-items: stretch;
@@ -2955,14 +2980,15 @@ i[data-lucide]:hover {
     padding: 1.25rem 0.85rem;
   }
   .shayari-quote {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
   .search-input {
     font-size: 0.85rem;
     padding-right: 4.2rem;
   }
   .glass-card {
-    padding: 1rem 0.85rem;
+    padding: 0.9rem 0.75rem;
+    border-radius: var(--radius-md);
   }
 }
 
