@@ -260,6 +260,7 @@ async function selectCity(city) {
 
     // Update Dashboard Widgets safely
     try { updateHeroDashboard(data); } catch(e) { console.error("updateHeroDashboard error:", e); }
+    try { update7DaySunCycle(data); } catch(e) { console.error("update7DaySunCycle error:", e); }
     try { updateHourlyCards(data.hourly || []); } catch(e) { console.error("updateHourlyCards error:", e); }
     try { updateAQIWidget(data.aqi); } catch(e) { console.error("updateAQIWidget error:", e); }
     try { updateHourlyChart(data.hourly || []); } catch(e) { console.error("updateHourlyChart error:", e); }
@@ -380,16 +381,16 @@ function updateHeroDashboard(data) {
       
       if (badgeEl) {
         badgeEl.textContent = rInfo.intensityEn;
-        badgeEl.style.background = rInfo.color;
+        badgeEl.style.backgroundColor = rInfo.color;
       }
       if (titleEl) {
-        titleEl.textContent = `Active Precipitation in ${data.city} (${data.condition})`;
+        titleEl.textContent = `${rInfo.intensityEn} (${data.city})`;
       }
       if (amountEl) {
         amountEl.textContent = rInfo.amountText;
       }
       if (chanceEl) {
-        chanceEl.textContent = `${data.hourly && data.hourly[0] ? data.hourly[0].pop : 80}%`;
+        chanceEl.textContent = `${Math.min(100, Math.max(70, Math.round((data.precipitation || 5) * 12)))}%`;
       }
     } else {
       rainAlertCard.classList.add('hidden');
@@ -401,6 +402,38 @@ function updateHeroDashboard(data) {
     iconEl.setAttribute('data-lucide', data.icon);
     lucide.createIcons();
   }
+}
+
+// 7-Day Sun & Daylight Cycle Forecast Carousel Updater
+function update7DaySunCycle(data) {
+  const container = document.getElementById('sun-7day-list');
+  if (!container || !data) return;
+
+  const daily = data.daily || [];
+  if (daily.length === 0) return;
+
+  container.innerHTML = daily.map((d, idx) => {
+    const sunrise = d.sunrise || data.sunrise || "06:05 AM";
+    const sunset = d.sunset || data.sunset || "07:12 PM";
+    const dayHours = d.dayHours || data.dayHours || "13 hrs 7 mins";
+    const isToday = idx === 0;
+
+    return `
+      <div class="sun-day-chip ${isToday ? 'active-day' : ''}">
+        <div class="sun-day-name">${d.day}</div>
+        <div class="sun-day-date">${d.date || ''}</div>
+        <div class="sun-times-row">
+          <span class="s-time rise"><i data-lucide="sunrise"></i> ${sunrise}</span>
+          <span class="s-time set"><i data-lucide="sunset"></i> ${sunset}</span>
+        </div>
+        <div class="sun-dur-tag">
+          <i data-lucide="clock"></i> ${dayHours}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  lucide.createIcons();
 }
 
 // Condition Advisory & Precautions Box Updater

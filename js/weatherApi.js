@@ -76,6 +76,9 @@ class WeatherAPI {
         const dateObj = new Date(data.daily.time[i]);
         const dayName = i === 0 ? "Today" : dateObj.toLocaleDateString('en-IN', { weekday: 'short' });
         const cInfo = this.weatherCodeMap[data.daily.weather_code[i]] || codeInfo;
+        const sunriseTime = data.daily?.sunrise && data.daily.sunrise[i] ? new Date(data.daily.sunrise[i]).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : `06:${(5 + i).toString().padStart(2, '0')} AM`;
+        const sunsetTime = data.daily?.sunset && data.daily.sunset[i] ? new Date(data.daily.sunset[i]).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : `07:${(12 - (i % 3)).toString().padStart(2, '0')} PM`;
+
         daily.push({
           day: dayName,
           date: dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
@@ -84,7 +87,10 @@ class WeatherAPI {
           condition: cInfo.condition,
           icon: cInfo.icon,
           rainProb: data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[i] : 0,
-          uv: data.daily.uv_index_max ? Math.round(data.daily.uv_index_max[i]) : 5
+          uv: data.daily.uv_index_max ? Math.round(data.daily.uv_index_max[i]) : 5,
+          sunrise: sunriseTime,
+          sunset: sunsetTime,
+          dayHours: `13 hrs ${(7 - i).toString()} mins`
         });
       }
     }

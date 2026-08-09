@@ -84,6 +84,7 @@ body {
 .brand-logo h1 {
   font-family: var(--font-stylish);
   font-variant: small-caps;
+  font-style: italic;
   font-size: 1.45rem;
   font-weight: 800;
   letter-spacing: 1.2px;
@@ -1139,6 +1140,100 @@ i[data-lucide]:hover {
 .hourly-card .h-temp {
   font-size: 1.15rem;
   font-weight: 700;
+}
+
+/* 7-DAY SUN & DAYLIGHT CYCLE CAROUSEL */
+.sun-7day-list {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding: 0.2rem 0.1rem 0.5rem 0.1rem;
+}
+
+.sun-day-chip {
+  min-width: 125px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid rgba(249, 115, 22, 0.3);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: center;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.sun-day-chip.active-day {
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+  border-color: #f97316;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.18);
+}
+
+.sun-day-chip:hover {
+  transform: translateY(-3px);
+  border-color: #f97316;
+}
+
+.sun-day-name {
+  font-family: var(--font-stylish);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.sun-day-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: -0.2rem;
+}
+
+.sun-times-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  margin: 0.2rem 0;
+}
+
+.s-time {
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.s-time.rise {
+  color: #d97706;
+}
+
+.s-time.set {
+  color: #ea580c;
+}
+
+.s-time i {
+  width: 13px;
+  height: 13px;
+}
+
+.sun-dur-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(249, 115, 22, 0.1);
+  padding: 0.15rem 0.45rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sun-dur-tag i {
+  width: 11px;
+  height: 11px;
 }
 
 /* AQI Widget */

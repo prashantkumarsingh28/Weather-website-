@@ -572,6 +572,17 @@
                 <div class="s-temp-item"><i data-lucide="arrow-up-right" style="color: #dc2626;"></i> Max Temp: <strong id="stat-max-temp">35°C</strong></div>
                 <div class="s-temp-item"><i data-lucide="arrow-down-right" style="color: #0284c7;"></i> Min Temp: <strong id="stat-min-temp">24°C</strong></div>
               </div>
+
+              <!-- 7-Day Sun & Daylight Cycle Forecast Carousel -->
+              <div class="sun-7day-wrap" style="margin-top: 0.9rem; border-top: 1.5px dashed rgba(249, 115, 22, 0.35); padding-top: 0.85rem;">
+                <div class="sun-7day-header" style="font-size: 0.85rem; font-weight: 700; font-family: var(--font-stylish); color: #c2410c; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                  <span><i data-lucide="sun" style="width: 14px; height: 14px; vertical-align: middle; color: #f59e0b;"></i> Next 7-Day Daylight Cycle:</span>
+                  <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Sunrise • Sunset</span>
+                </div>
+                <div id="sun-7day-list" class="sun-7day-list">
+                  <!-- Dynamically populated 7-day daylight cycle cards -->
+                </div>
+              </div>
             </div>
 
             <!-- AQI Widget -->
