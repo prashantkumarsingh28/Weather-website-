@@ -63,6 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load Initial Weather & Climate Data
   selectCity(currentCity);
 
+  // Initialize Network Connectivity Indicator
+  initNetworkMonitor();
+
   // Default to Weather view on page load so all details are visible immediately
   switchNavTab('weather');
 
@@ -984,5 +987,58 @@ function nextWeatherShayari() {
       textEl.style.opacity = '1';
     }, 250);
   }
+}
+
+// REAL-TIME NETWORK CONNECTIVITY MONITORING SYSTEM
+function initNetworkMonitor() {
+  const badge = document.getElementById('net-status-badge');
+  const icon = document.getElementById('net-status-icon');
+  const text = document.getElementById('net-status-text');
+
+  function updateStatus() {
+    if (!badge || !text) return;
+
+    if (!navigator.onLine) {
+      // Offline State
+      badge.className = 'net-status-badge net-offline';
+      text.textContent = 'Internet Off - Turn on Wi-Fi/Data';
+      if (icon) icon.setAttribute('data-lucide', 'wifi-off');
+    } else {
+      const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      let isWeak = false;
+
+      if (conn) {
+        if (conn.saveData || conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g' || (conn.rtt && conn.rtt > 800) || (conn.downlink && conn.downlink < 0.5)) {
+          isWeak = true;
+        }
+      }
+
+      if (isWeak) {
+        // Weak / Slow Connection
+        badge.className = 'net-status-badge net-weak';
+        text.textContent = 'Weak Connection';
+        if (icon) icon.setAttribute('data-lucide', 'wifi');
+      } else {
+        // Good Connection
+        badge.className = 'net-status-badge net-good';
+        text.textContent = 'Internet Good';
+        if (icon) icon.setAttribute('data-lucide', 'wifi');
+      }
+    }
+
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+      lucide.createIcons();
+    }
+  }
+
+  window.addEventListener('online', updateStatus);
+  window.addEventListener('offline', updateStatus);
+
+  if (navigator.connection) {
+    navigator.connection.addEventListener('change', updateStatus);
+  }
+
+  updateStatus();
+  setInterval(updateStatus, 8000);
 }
 

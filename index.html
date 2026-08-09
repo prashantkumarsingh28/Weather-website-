@@ -49,6 +49,13 @@
     </nav>
 
     <div class="nav-actions">
+      <!-- Live Internet Connectivity Status Indicator Badge -->
+      <div id="net-status-badge" class="net-status-badge net-good" title="Internet Connection Status">
+        <span class="net-pulse-dot"></span>
+        <i data-lucide="wifi" id="net-status-icon"></i>
+        <span id="net-status-text">Internet Good</span>
+      </div>
+
       <!-- Voice Speaker Narration Toggle -->
       <button id="speaker-nav-btn" class="btn-icon" title="Listen Weather Report (English / Hindi Speaker)" onclick="toggleWeatherSpeaker()">
         <i data-lucide="mic"></i>

@@ -82,12 +82,16 @@ body {
 }
 
 .brand-logo h1 {
-  font-family: var(--font-heading);
-  font-size: 1.35rem;
+  font-family: var(--font-stylish);
+  font-variant: small-caps;
+  font-size: 1.45rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #0f172a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 4px rgba(2, 132, 199, 0.15));
 }
 
 .brand-logo span {
@@ -97,8 +101,71 @@ body {
   border: 1px solid rgba(2, 132, 199, 0.25);
   border-radius: 20px;
   color: var(--accent-cyan);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
+}
+
+/* LIVE INTERNET CONNECTIVITY BADGE */
+.net-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: var(--font-stylish);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.net-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.net-good {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+  color: #059669;
+}
+
+.net-good .net-pulse-dot {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: dotPulse 1.8s infinite ease-in-out;
+}
+
+.net-weak {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  color: #d97706;
+}
+
+.net-weak .net-pulse-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+.net-offline {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
+  color: #dc2626;
+  animation: alertPulse 1.5s infinite alternate;
+}
+
+.net-offline .net-pulse-dot {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+@keyframes dotPulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* TOP NAVIGATION TABS (Weather, Climate, Feedback) */
@@ -2089,7 +2156,7 @@ i[data-lucide]:hover {
 
 .definition-card {
   background: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--glass-border);
+  border: 1.5px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: 1.75rem;
   display: flex;
@@ -2099,9 +2166,26 @@ i[data-lucide]:hover {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* DESIGNER SHAPES & COLOURFUL BOXES ON INTRO PAGE */
+.weather-def-card {
+  border: 2px solid #f59e0b;
+  border-top: 6px solid #f59e0b;
+  border-radius: 32px 14px 28px 14px;
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(255, 255, 255, 0.96) 100%);
+  box-shadow: 0 16px 45px rgba(245, 158, 11, 0.14);
+}
+
+.climate-def-card {
+  border: 2px solid #0284c7;
+  border-top: 6px solid #0284c7;
+  border-radius: 14px 32px 14px 28px;
+  background: linear-gradient(135deg, rgba(224, 242, 254, 0.95) 0%, rgba(255, 255, 255, 0.96) 100%);
+  box-shadow: 0 16px 45px rgba(2, 132, 199, 0.14);
+}
+
 .definition-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 15px 35px rgba(2, 132, 199, 0.12);
+  box-shadow: 0 18px 45px rgba(2, 132, 199, 0.16);
 }
 
 .def-header {
@@ -2265,6 +2349,14 @@ i[data-lucide]:hover {
 }
 
 /* Intro Drivers Grid */
+.intro-drivers-card {
+  border: 2px solid #8b5cf6;
+  border-top: 6px solid #8b5cf6;
+  border-radius: 28px 14px 28px 14px;
+  background: linear-gradient(135deg, rgba(245, 243, 255, 0.95) 0%, rgba(255, 255, 255, 0.96) 100%);
+  box-shadow: 0 16px 45px rgba(139, 92, 246, 0.14);
+}
+
 .drivers-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2276,28 +2368,29 @@ i[data-lucide]:hover {
   display: flex;
   align-items: flex-start;
   gap: 0.9rem;
-  background: rgba(248, 250, 252, 0.85);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid rgba(139, 92, 246, 0.35);
+  border-radius: 22px 10px 22px 10px;
   padding: 1rem;
-  border-radius: var(--radius-md);
   transition: all 0.25s ease;
 }
 
 .driver-item:hover {
   background: #ffffff;
-  border-color: var(--accent-cyan);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.08);
+  border-color: #8b5cf6;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(139, 92, 246, 0.15);
 }
 
 .driver-icon {
-  background: rgba(2, 132, 199, 0.1);
-  color: var(--accent-cyan);
+  background: rgba(139, 92, 246, 0.12);
+  color: #8b5cf6;
   padding: 0.6rem;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.25rem;
   flex-shrink: 0;
 }
 
@@ -2317,8 +2410,11 @@ i[data-lucide]:hover {
 
 /* Climate Official Citations Grid */
 .climate-citation-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(254, 243, 199, 0.3) 100%);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(255, 255, 255, 0.96) 100%);
+  border: 2px solid #f59e0b;
+  border-top: 6px solid #f59e0b;
+  border-radius: 14px 28px 14px 28px;
+  box-shadow: 0 16px 45px rgba(245, 158, 11, 0.14);
 }
 
 .citation-grid {
@@ -2331,10 +2427,10 @@ i[data-lucide]:hover {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  border-radius: 18px 8px 18px 8px;
   padding: 0.85rem 1rem;
-  border-radius: var(--radius-md);
 }
 
 .citation-item i {
@@ -2366,10 +2462,12 @@ i[data-lucide]:hover {
 
 /* Comparison Table Card */
 .comparison-card {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.95) 0%, rgba(255, 255, 255, 0.96) 100%);
+  border: 2px solid #10b981;
+  border-top: 6px solid #10b981;
+  border-radius: 28px 14px 28px 14px;
   padding: 1.75rem;
+  box-shadow: 0 16px 45px rgba(16, 185, 129, 0.14);
 }
 
 .table-responsive {
