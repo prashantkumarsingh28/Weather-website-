@@ -12,19 +12,21 @@ class Weather3DScene {
 
   initScene() {
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(0xbae6fd, 0.007); // Light sky blue fog
+    // Subtle fog to preserve clear view of 4K HD wallpaper image
+    this.scene.fog = new THREE.FogExp2(0xbae6fd, 0.0008);
 
     this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(0, 5, 30);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    this.renderer.setClearColor(0x000000, 0); // 100% Transparent background for 4K HD wallpaper
     this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.container.appendChild(this.renderer.domElement);
 
     // Light Theme Lighting Setup
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
     this.scene.add(this.ambientLight);
 
     // Warm Sun Light Source
@@ -134,26 +136,38 @@ class Weather3DScene {
   }
 
   createWeatherParticleSystems() {
-    const rainCount = 2000;
+    const rainCount = 3000;
     const rainGeo = new THREE.BufferGeometry();
-    const rainPos = new Float32Array(rainCount * 3);
+    const rainPositions = new Float32Array(rainCount * 2 * 3); // 2 vertices per raindrop line segment
     this.rainVelocities = new Float32Array(rainCount);
 
     for (let i = 0; i < rainCount; i++) {
-      rainPos[i * 3] = (Math.random() - 0.5) * 80;
-      rainPos[i * 3 + 1] = Math.random() * 50;
-      rainPos[i * 3 + 2] = (Math.random() - 0.5) * 80;
-      this.rainVelocities[i] = 0.5 + Math.random() * 0.5;
+      const x = (Math.random() - 0.5) * 100;
+      const y = Math.random() * 60;
+      const z = (Math.random() - 0.5) * 90;
+      const dropLength = 0.8 + Math.random() * 0.7;
+
+      // Top of raindrop
+      rainPositions[i * 6] = x;
+      rainPositions[i * 6 + 1] = y;
+      rainPositions[i * 6 + 2] = z;
+
+      // Bottom of raindrop
+      rainPositions[i * 6 + 3] = x - 0.15;
+      rainPositions[i * 6 + 4] = y - dropLength;
+      rainPositions[i * 6 + 5] = z;
+
+      this.rainVelocities[i] = 1.1 + Math.random() * 0.9;
     }
 
-    rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
-    const rainMat = new THREE.PointsMaterial({
-      color: 0x0284c7,
-      size: 0.25,
+    rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
+    const rainMat = new THREE.LineBasicMaterial({
+      color: 0x7dd3fc,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.85
     });
-    this.rainParticles = new THREE.Points(rainGeo, rainMat);
+
+    this.rainParticles = new THREE.LineSegments(rainGeo, rainMat);
     this.rainParticles.visible = false;
     this.scene.add(this.rainParticles);
   }
@@ -246,10 +260,28 @@ class Weather3DScene {
 
     if (this.rainParticles && this.rainParticles.visible) {
       const pos = this.rainParticles.geometry.attributes.position.array;
-      for (let i = 0; i < pos.length / 3; i++) {
-        pos[i * 3 + 1] -= this.rainVelocities[i];
-        if (pos[i * 3 + 1] < 0) {
-          pos[i * 3 + 1] = 50;
+      const dropCount = pos.length / 6;
+      for (let i = 0; i < dropCount; i++) {
+        const vel = this.rainVelocities[i];
+        pos[i * 6 + 1] -= vel;
+        pos[i * 6] -= vel * 0.06;
+
+        pos[i * 6 + 4] -= vel;
+        pos[i * 6 + 3] -= vel * 0.06;
+
+        if (pos[i * 6 + 1] < -5) {
+          const newX = (Math.random() - 0.5) * 100;
+          const newY = 55 + Math.random() * 10;
+          const newZ = (Math.random() - 0.5) * 90;
+          const dropLength = 0.8 + Math.random() * 0.7;
+
+          pos[i * 6] = newX;
+          pos[i * 6 + 1] = newY;
+          pos[i * 6 + 2] = newZ;
+
+          pos[i * 6 + 3] = newX - 0.15;
+          pos[i * 6 + 4] = newY - dropLength;
+          pos[i * 6 + 5] = newZ;
         }
       }
       this.rainParticles.geometry.attributes.position.needsUpdate = true;

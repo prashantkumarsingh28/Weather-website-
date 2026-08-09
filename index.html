@@ -7,7 +7,7 @@
   <meta name="description" content="India Weather and Climate Intelligence Platform with Light Theme background, live city indicators, advisory precautions, historical climate trends, weather news, and user feedback.">
 
   <!-- Style & Fonts -->
-  <link rel="stylesheet" href="./css/style.css?v=2.0">
+  <link rel="stylesheet" href="./css/style.css?v=3.0">
 
   <!-- External Libraries (CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -232,24 +232,18 @@
           <!-- Search Bar Box -->
           <div class="glass-card search-card">
             <div class="search-input-wrap">
-              <i data-lucide="search"></i>
+              <i data-lucide="search" class="search-left-icon"></i>
               <input type="text" id="city-search-input" class="search-input" placeholder="Search 110+ Indian cities, districts..." autocomplete="off">
-              <button id="clear-search-btn" class="clear-search-btn hidden" title="Clear Search Input" onclick="clearCitySearch()">
-                <i data-lucide="x"></i>
-              </button>
-              <button class="geo-btn" title="Detect Current Location" onclick="detectUserLocation()">
-                <i data-lucide="crosshair"></i>
-              </button>
+              <div class="search-inside-actions">
+                <button id="clear-search-btn" class="clear-search-btn hidden" title="Clear Search Input" onclick="clearCitySearch()">
+                  <i data-lucide="x"></i>
+                </button>
+                <button class="geo-btn" title="Detect Current Location" onclick="detectUserLocation()">
+                  <i data-lucide="crosshair"></i>
+                </button>
+              </div>
               
               <div id="search-results" class="search-results"></div>
-            </div>
-
-            <div class="region-chips">
-              <button class="chip active" onclick="filterByRegion('All')">All</button>
-              <button class="chip" onclick="filterByRegion('Metro')">Metros</button>
-              <button class="chip" onclick="filterByRegion('Himalayas')">Himalayas</button>
-              <button class="chip" onclick="filterByRegion('Coastal')">Coastal</button>
-              <button class="chip" onclick="filterByRegion('Desert')">Desert</button>
             </div>
           </div>
 
@@ -342,6 +336,17 @@
                 </div>
               </div>
             </div>
+
+            <!-- Hourly Temperature & Condition Indicators (Inside Main Hero Weather Box) -->
+            <div class="hero-hourly-section">
+              <div class="hero-hourly-title">
+                <i data-lucide="clock"></i>
+                <span>Hourly Temperature & Condition Forecast</span>
+              </div>
+              <div id="hourly-cards-wrap" class="hourly-scroll-wrap">
+                <!-- Dynamically populated hourly cards -->
+              </div>
+            </div>
           </div>
 
           <!-- Interactive Weather Speaker (Voice Narration Card) -->
@@ -427,7 +432,7 @@
           <div class="dashboard-grid">
 
             <!-- Condition Advisory & Precautions Card -->
-            <div class="glass-card advisory-card">
+            <div class="glass-card advisory-card full-width-card">
               <div class="advisory-header">
                 <i data-lucide="shield-alert"></i>
                 <span id="advisory-title">IMD Weather Advisory & Safety Precautions</span>
@@ -488,28 +493,6 @@
               </div>
             </div>
 
-            <!-- Visual Do's & Don'ts Weather Advisory Card -->
-            <div class="glass-card visual-advisory-card" style="grid-column: span 3;">
-              <div class="card-title" style="font-size: 1.2rem;">
-                <span><i data-lucide="shield-check" style="color: var(--accent-emerald);"></i> Weather Safety Advisory: Visual Do's & Don'ts (क्या करें और क्या न करें)</span>
-              </div>
-
-              <div id="visual-precautions-container" class="visual-dos-donts-grid">
-                <!-- Dynamically populated with Do's (Green) & Don'ts (Red) and Animated Illustrations -->
-              </div>
-            </div>
-
-            <!-- Hourly Forecast Carousel (Sun, Cloud, Rain Icons) -->
-            <div class="glass-card hourly-container">
-              <div class="card-title">
-                <span>Hourly Temperature & Condition Indicators</span>
-                <i data-lucide="clock"></i>
-              </div>
-              <div id="hourly-cards-wrap" class="hourly-scroll-wrap">
-                <!-- Dynamically populated hourly cards -->
-              </div>
-            </div>
-
             <!-- AQI Widget -->
             <div class="glass-card aqi-container">
               <div class="card-title">
@@ -547,8 +530,19 @@
               </div>
             </div>
 
+            <!-- Visual Do's & Don'ts Weather Advisory Card -->
+            <div class="glass-card visual-advisory-card full-width-card">
+              <div class="card-title" style="font-size: 1.2rem;">
+                <span><i data-lucide="shield-check" style="color: var(--accent-emerald);"></i> Weather Safety Advisory: Visual Do's & Don'ts (क्या करें और क्या न करें)</span>
+              </div>
+
+              <div id="visual-precautions-container" class="visual-dos-donts-grid">
+                <!-- Dynamically populated with Do's (Green) & Don'ts (Red) and Animated Illustrations -->
+              </div>
+            </div>
+
             <!-- 7-Day Forecast Grid -->
-            <div class="glass-card forecast-7day-card">
+            <div class="glass-card forecast-7day-card full-width-card">
               <div class="card-title">
                 <span id="forecast-7day-title">7-Day Weather Forecast for New Delhi</span>
                 <i data-lucide="calendar"></i>
@@ -782,15 +776,15 @@
   </div>
 
   <!-- JavaScript Modules with Relative Paths -->
-  <script src="./js/citiesData.js?v=2.0"></script>
-  <script src="./js/climateData.js?v=2.0"></script>
-  <script src="./js/newsData.js?v=2.0"></script>
-  <script src="./js/weatherApi.js?v=2.0"></script>
-  <script src="./js/weather3d.js?v=2.0"></script>
-  <script src="./js/alertsSystem.js?v=2.0"></script>
-  <script src="./js/audioEngine.js?v=2.0"></script>
-  <script src="./js/weatherSpeaker.js?v=2.0"></script>
-  <script src="./js/app.js?v=2.0"></script>
+  <script src="./js/citiesData.js?v=3.0"></script>
+  <script src="./js/climateData.js?v=3.0"></script>
+  <script src="./js/newsData.js?v=3.0"></script>
+  <script src="./js/weatherApi.js?v=3.0"></script>
+  <script src="./js/weather3d.js?v=3.0"></script>
+  <script src="./js/alertsSystem.js?v=3.0"></script>
+  <script src="./js/audioEngine.js?v=3.0"></script>
+  <script src="./js/weatherSpeaker.js?v=3.0"></script>
+  <script src="./js/app.js?v=3.0"></script>
   
   <script>
     lucide.createIcons();

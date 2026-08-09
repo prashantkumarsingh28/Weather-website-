@@ -234,9 +234,9 @@ class WeatherSpeaker {
 
     if (rInfo && rInfo.isRaining) {
       if (lang === 'hi') {
-        return `वर्तमान में क्षेत्र में ${rInfo.intensityHi} हो रही है, वर्षा की मात्रा लगभग ${rInfo.amountText} है।`;
+        return `विशेष वर्षा चेतावनी: ${this.getHindiCityName(data.city)} में ${rInfo.intensityHi} सक्रिय है। वर्षा की मात्रा ${rInfo.amountText} दर्ज की गई है।`;
       } else {
-        return `Rain is active with ${rInfo.intensityEn} recording ${rInfo.amountText} of precipitation.`;
+        return `Rain Alert: ${rInfo.intensityEn} active in ${data.city}. Recorded rainfall volume is ${rInfo.amountText}.`;
       }
     }
 
@@ -251,7 +251,7 @@ class WeatherSpeaker {
       }
     }
 
-    return lang === 'hi' ? "आज भारी वर्षा की संभावना नहीं है।" : "No active rain currently.";
+    return lang === 'hi' ? "आज वर्षा की संभावना कम है।" : "No active rain currently.";
   }
 
   generateSpeechText(data, lang = this.lang) {
@@ -279,12 +279,12 @@ class WeatherSpeaker {
       const sunsetHi = this.formatTimeHindi(sunset);
       const rainTextHi = this.getRainInfo(data, 'hi');
       
-      // Clear Devanagari Hindi speech with moderate pace & full details
-      return `${cityHi} ${stateHi} के लिए मौसम समाचार। वर्तमान तापमान ${temp} डिग्री सेल्सियस है, जो ${feelsLike} डिग्री जैसा लग रहा है। आज का अधिकतम तापमान ${maxTemp} डिग्री और न्यूनतम तापमान ${minTemp} डिग्री सेल्सियस रहेगा। मौसम ${conditionHi} है। सूर्योदय ${sunriseHi} और सूर्यास्त ${sunsetHi} होगा। हवा की गति ${windSpeed} किलोमीटर प्रति घंटा है। वायु गुणवत्ता सूचकांक ${aqiVal} यानी ${aqiLabelHi} स्थिति में है। ${rainTextHi}`;
+      // Clear, natural Devanagari Hindi speech with balanced moderate speed
+      return `${cityHi} ${stateHi} के लिए लाइव मौसम समाचार। वर्तमान तापमान ${temp} डिग्री सेल्सियस है, जो ${feelsLike} डिग्री सेल्सियस जैसा महसूस हो रहा है। आज का अधिकतम तापमान ${maxTemp} डिग्री और न्यूनतम तापमान ${minTemp} डिग्री सेल्सियस रहेगा। मौसम ${conditionHi} है। सूर्योदय ${sunriseHi} और सूर्यास्त ${sunsetHi} होगा। हवा की गति ${windSpeed} किलोमीटर प्रति घंटा है। वायु गुणवत्ता सूचकांक ${aqiVal} यानी ${aqiLabelHi} स्थिति में है। ${rainTextHi}`;
     } else {
       const rainTextEn = this.getRainInfo(data, 'en');
       // Natural English speech with moderate pace & full details
-      return `Weather report for ${cityName}, ${stateName}. Current temperature is ${temp}°C, feeling like ${feelsLike}°C with ${condition}. Today's maximum temperature is ${maxTemp}°C and minimum temperature is ${minTemp}°C. Sunrise at ${sunrise} and sunset at ${sunset}. Wind speed is ${windSpeed} kilometers per hour. AQI is ${aqiVal}, ${aqiLabel}. ${rainTextEn}`;
+      return `Live weather report for ${cityName}, ${stateName}. Current temperature is ${temp}°C, feeling like ${feelsLike}°C with ${condition}. Today's maximum temperature is ${maxTemp}°C and minimum temperature is ${minTemp}°C. Sunrise at ${sunrise} and sunset at ${sunset}. Wind speed is ${windSpeed} kilometers per hour. AQI is ${aqiVal}, ${aqiLabel}. ${rainTextEn}`;
     }
   }
 
@@ -294,12 +294,18 @@ class WeatherSpeaker {
     }
     
     if (lang === 'hi') {
-      const hiVoice = this.voices.find(v => 
-        v.lang.toLowerCase().includes('hi') || 
-        v.name.toLowerCase().includes('hindi') ||
-        v.name.toLowerCase().includes('hi-in')
-      );
-      if (hiVoice) return hiVoice;
+      // Prioritize high quality Neural & Natural Hindi voices
+      const googleHi = this.voices.find(v => v.name.toLowerCase().includes('google') && (v.lang.toLowerCase().includes('hi') || v.name.toLowerCase().includes('hindi')));
+      if (googleHi) return googleHi;
+
+      const msHi = this.voices.find(v => (v.name.toLowerCase().includes('kalpana') || v.name.toLowerCase().includes('hemant') || v.name.toLowerCase().includes('hindi')) && v.lang.toLowerCase().includes('hi'));
+      if (msHi) return msHi;
+
+      const hiInVoice = this.voices.find(v => v.lang.toLowerCase() === 'hi-in' || v.lang.toLowerCase().includes('hi-in') || v.lang.toLowerCase().includes('hi_in'));
+      if (hiInVoice) return hiInVoice;
+
+      const hiGeneric = this.voices.find(v => v.lang.toLowerCase().includes('hi') || v.name.toLowerCase().includes('hindi'));
+      if (hiGeneric) return hiGeneric;
     } else {
       const enIndVoice = this.voices.find(v => v.lang.toLowerCase() === 'en-in' || v.lang.toLowerCase().includes('en-in'));
       if (enIndVoice) return enIndVoice;
@@ -316,21 +322,33 @@ class WeatherSpeaker {
     this.currentData = data;
     this.stop(); // Thoroughly clear any running audio / synth queue
 
-    const text = this.generateSpeechText(data, this.lang);
-    this.updateTranscriptPreview(data);
-
     if (!this.synth && typeof window !== 'undefined' && window.speechSynthesis) {
       this.synth = window.speechSynthesis;
     }
 
     if (this.synth) {
       this.loadVoices();
-      const voice = this.getBestVoice(this.lang);
+    }
 
+    const voice = this.getBestVoice(this.lang);
+    const hasNativeHindiVoice = (this.lang === 'hi') && (voice !== null);
+
+    // If Hindi requested but no native Hindi voice is installed on Windows/browser, use high quality Google TTS Audio stream
+    if (this.lang === 'hi' && !hasNativeHindiVoice) {
+      const devanagariText = this.generateSpeechText(data, 'hi');
+      this.updateTranscriptPreview(data);
+      this.speakAudioFallback(devanagariText, 'hi');
+      return;
+    }
+
+    const text = this.generateSpeechText(data, this.lang);
+    this.updateTranscriptPreview(data);
+
+    if (this.synth) {
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = (this.lang === 'hi') ? 'hi-IN' : 'en-IN';
-        utterance.rate = 0.92;
+        utterance.rate = (this.lang === 'hi') ? 0.86 : 0.90; // Natural, clear speed (not fast, not slow)
         utterance.pitch = 1.0;
 
         if (voice) {
@@ -348,9 +366,8 @@ class WeatherSpeaker {
         };
 
         utterance.onerror = (err) => {
-          console.warn("SpeechSynthesis error:", err);
-          this.isSpeaking = false;
-          this.updateUIState(false);
+          console.warn("SpeechSynthesis error, falling back to Audio stream:", err);
+          this.speakAudioFallback(text, this.lang);
         };
 
         try {

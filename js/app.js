@@ -100,6 +100,7 @@ function switchNavTab(tabName) {
       audioEngine.stop();
       if (audioToggleBtn) audioToggleBtn.classList.remove('active');
     }
+    closeAlertModal();
   }
 
   if (tabName === 'climate') {
@@ -131,8 +132,18 @@ function addToSearchHistory(cityData) {
       icon: cityData.icon,
       condition: cityData.condition
     });
-    // Keep max 6 items
-    history = history.slice(0, 6);
+    // Keep max 8 items
+    history = history.slice(0, 8);
+    localStorage.setItem('weather_search_history', JSON.stringify(history));
+    renderSearchHistory();
+  } catch(e) {}
+}
+
+function removeFromSearchHistory(cityName, event) {
+  if (event) event.stopPropagation();
+  try {
+    let history = getSearchHistory();
+    history = history.filter(item => item.name.toLowerCase() !== cityName.toLowerCase());
     localStorage.setItem('weather_search_history', JSON.stringify(history));
     renderSearchHistory();
   } catch(e) {}
@@ -157,9 +168,14 @@ function renderSearchHistory() {
           <p>${item.state}</p>
         </div>
       </div>
-      <div class="history-temp-badge">
-        <i data-lucide="${item.icon || 'sun'}"></i>
-        <span>${item.temp}°C</span>
+      <div class="history-actions">
+        <div class="history-temp-badge">
+          <i data-lucide="${item.icon || 'sun'}"></i>
+          <span>${item.temp}°C</span>
+        </div>
+        <button class="delete-history-item-btn" title="Remove from history" onclick="removeFromSearchHistory('${item.name}', event)">
+          <i data-lucide="x"></i>
+        </button>
       </div>
     </div>
   `).join('');
@@ -779,12 +795,20 @@ function closeAlertModal() {
   document.getElementById('alert-modal').classList.remove('active');
 }
 
-// Search Engine
+// Optimized Instant Search Engine
 function setupSearchEngine() {
   const input = document.getElementById('city-search-input');
   const results = document.getElementById('search-results');
 
   if (!input) return;
+
+  // Pre-index cities for ultra-fast lookup
+  const searchIndex = INDIAN_CITIES.map(c => ({
+    city: c,
+    nameLower: c.name.toLowerCase(),
+    stateLower: c.state.toLowerCase(),
+    regionLower: c.region.toLowerCase()
+  }));
 
   input.addEventListener('input', (e) => {
     updateSearchClearButton();
@@ -794,18 +818,34 @@ function setupSearchEngine() {
       return;
     }
 
-    const matches = INDIAN_CITIES.filter(c => 
-      c.name.toLowerCase().includes(query) || c.state.toLowerCase().includes(query) || c.region.toLowerCase().includes(query)
-    ).slice(0, 10);
+    // High priority: prefix match on city name, then state/region match
+    const startsWithMatches = [];
+    const includesMatches = [];
+
+    for (let i = 0; i < searchIndex.length; i++) {
+      const item = searchIndex[i];
+      if (item.nameLower.startsWith(query)) {
+        startsWithMatches.push(item.city);
+      } else if (item.nameLower.includes(query) || item.stateLower.includes(query) || item.regionLower.includes(query)) {
+        includesMatches.push(item.city);
+      }
+      if (startsWithMatches.length + includesMatches.length >= 10) break;
+    }
+
+    const matches = [...startsWithMatches, ...includesMatches].slice(0, 8);
 
     if (matches.length > 0) {
       results.innerHTML = matches.map(c => `
         <div class="result-item" onclick="selectCityFromSearch('${c.name}')">
-          <span class="city-name" style="font-weight: 600;">${c.name}</span>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="map-pin" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
+            <span class="city-name" style="font-weight: 600;">${c.name}</span>
+          </div>
           <span class="state-tag" style="font-size: 0.75rem; color: var(--text-muted);">${c.state}</span>
         </div>
       `).join('');
       results.classList.add('active');
+      lucide.createIcons();
     } else {
       results.classList.remove('active');
     }

@@ -185,6 +185,67 @@ class WeatherAPI {
     return { label: "Severe Alert", color: "#9333ea", desc: "Emergency health warning!" };
   }
 
+  static getRainIntensityInfo(precip, conditionStr = "") {
+    const condLower = (conditionStr || "").toLowerCase();
+    const isRainCondition = condLower.includes("rain") || condLower.includes("drizzle") || 
+                            condLower.includes("shower") || condLower.includes("downpour") || 
+                            condLower.includes("torrent") || condLower.includes("thunderstorm") ||
+                            condLower.includes("squall");
+    const precipVal = parseFloat(precip) || 0;
+    const isRaining = precipVal > 0 || isRainCondition;
+
+    if (!isRaining) {
+      return {
+        isRaining: false,
+        intensityEn: "No Active Rain",
+        intensityHi: "वर्षा नहीं है",
+        amountVal: 0,
+        amountText: "0.0 mm",
+        color: "#0284c7",
+        descEn: "No active rain currently.",
+        descHi: "वर्तमान में वर्षा नहीं हो रही है।"
+      };
+    }
+
+    const amount = precipVal > 0 ? precipVal : (condLower.includes("heavy") || condLower.includes("torrent") ? 14.5 : condLower.includes("light") || condLower.includes("drizzle") ? 1.8 : 5.4);
+    const amountText = `${amount.toFixed(1)} mm`;
+
+    if (amount >= 7.5 || condLower.includes("heavy") || condLower.includes("torrent") || condLower.includes("downpour") || condLower.includes("thunderstorm")) {
+      return {
+        isRaining: true,
+        intensityEn: "Heavy Downpour Alert",
+        intensityHi: "भारी मूसलाधार वर्षा चेतावन",
+        amountVal: amount,
+        amountText: amountText,
+        color: "#dc2626",
+        descEn: `Heavy rain alert active with ${amountText} rainfall volume.`,
+        descHi: `क्षेत्र में ${amountText} वर्षा के साथ भारी मूसलाधार बारिश सक्रिय है।`
+      };
+    } else if (amount >= 2.5 || condLower.includes("moderate") || condLower.includes("shower")) {
+      return {
+        isRaining: true,
+        intensityEn: "Moderate Rain Alert",
+        intensityHi: "मध्यम वर्षा चेतावनी",
+        amountVal: amount,
+        amountText: amountText,
+        color: "#2563eb",
+        descEn: `Moderate rain alert active with ${amountText} rainfall volume.`,
+        descHi: `क्षेत्र में ${amountText} वर्षा के साथ मध्यम बारिश जारी है।`
+      };
+    } else {
+      return {
+        isRaining: true,
+        intensityEn: "Light Rain Alert",
+        intensityHi: "हल्की वर्षा चेतावनी",
+        amountVal: amount,
+        amountText: amountText,
+        color: "#0284c7",
+        descEn: `Light rain alert active with ${amountText} rainfall volume.`,
+        descHi: `क्षेत्र में ${amountText} वर्षा के साथ हल्की बूंदाबांदी जारी है।`
+      };
+    }
+  }
+
   static generateFallbackData(city) {
     let baseTemp = 31;
     let condition = "Partly Cloudy";
