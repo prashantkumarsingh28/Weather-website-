@@ -230,16 +230,14 @@ class WeatherSpeaker {
   }
 
   getRainInfo(data, lang) {
-    const isRainingNow = data.precipitation > 0 || 
-      (data.condition && (
-        data.condition.toLowerCase().includes('rain') || 
-        data.condition.toLowerCase().includes('drizzle') ||
-        data.condition.toLowerCase().includes('storm') ||
-        data.condition.toLowerCase().includes('downpour')
-      ));
+    const rInfo = data.rainInfo || (typeof WeatherAPI !== 'undefined' ? WeatherAPI.getRainIntensityInfo(data.precipitation || 0, data.condition) : null);
 
-    if (isRainingNow) {
-      return lang === 'hi' ? "अभी क्षेत्र में वर्षा हो रही है।" : "Rain is currently active.";
+    if (rInfo && rInfo.isRaining) {
+      if (lang === 'hi') {
+        return `वर्तमान में क्षेत्र में ${rInfo.intensityHi} हो रही है, वर्षा की मात्रा लगभग ${rInfo.amountText} है।`;
+      } else {
+        return `Rain is active with ${rInfo.intensityEn} recording ${rInfo.amountText} of precipitation.`;
+      }
     }
 
     if (data.hourly && data.hourly.length > 0) {
@@ -253,7 +251,7 @@ class WeatherSpeaker {
       }
     }
 
-    return lang === 'hi' ? "आज भारी वर्षा का अनुमान नहीं है।" : "No heavy rain expected today.";
+    return lang === 'hi' ? "आज भारी वर्षा की संभावना नहीं है।" : "No active rain currently.";
   }
 
   generateSpeechText(data, lang = this.lang) {
@@ -312,59 +310,62 @@ class WeatherSpeaker {
   }
 
   speak(data) {
+    if (!data) data = this.currentData || currentWeatherData;
+    if (!data) return;
+
     this.currentData = data;
     this.stop(); // Thoroughly clear any running audio / synth queue
 
     const text = this.generateSpeechText(data, this.lang);
     this.updateTranscriptPreview(data);
 
-    const voice = this.getBestVoice(this.lang);
+    if (!this.synth && typeof window !== 'undefined' && window.speechSynthesis) {
+      this.synth = window.speechSynthesis;
+    }
 
-    // Delay slightly to ensure previous speech synthesis queue has completely canceled
-    setTimeout(() => {
-      // If Hindi and no native browser voice is installed, use Google TTS Web Audio Stream fallback
-      if (this.lang === 'hi' && !voice) {
-        this.speakAudioFallback(text, 'hi');
-        return;
-      }
+    if (this.synth) {
+      this.loadVoices();
+      const voice = this.getBestVoice(this.lang);
 
-      if (!this.synth) {
-        this.speakAudioFallback(text, this.lang);
-        return;
-      }
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = (this.lang === 'hi') ? 'hi-IN' : 'en-IN';
+        utterance.rate = 0.92;
+        utterance.pitch = 1.0;
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = this.lang === 'hi' ? 'hi-IN' : 'en-IN';
-      utterance.rate = 0.92; // Moderate, clear, articulate speech rate
-      utterance.pitch = 1.0;
+        if (voice) {
+          utterance.voice = voice;
+        }
 
-      if (voice) {
-        utterance.voice = voice;
-      }
+        utterance.onstart = () => {
+          this.isSpeaking = true;
+          this.updateUIState(true);
+        };
 
-      utterance.onstart = () => {
-        this.isSpeaking = true;
-        this.updateUIState(true);
-      };
+        utterance.onend = () => {
+          this.isSpeaking = false;
+          this.updateUIState(false);
+        };
 
-      utterance.onend = () => {
-        this.isSpeaking = false;
-        this.updateUIState(false);
-      };
+        utterance.onerror = (err) => {
+          console.warn("SpeechSynthesis error:", err);
+          this.isSpeaking = false;
+          this.updateUIState(false);
+        };
 
-      utterance.onerror = (err) => {
-        console.warn("SpeechSynthesis error, falling back to Web Audio TTS:", err);
-        this.isSpeaking = false;
-        this.updateUIState(false);
-        this.speakAudioFallback(text, this.lang);
-      };
-
-      try {
-        this.synth.speak(utterance);
-      } catch (e) {
-        this.speakAudioFallback(text, this.lang);
-      }
-    }, 75);
+        try {
+          this.synth.cancel();
+          this.synth.speak(utterance);
+          this.isSpeaking = true;
+          this.updateUIState(true);
+        } catch (e) {
+          console.warn("SpeechSynthesis exception:", e);
+          this.speakAudioFallback(text, this.lang);
+        }
+      }, 50);
+    } else {
+      this.speakAudioFallback(text, this.lang);
+    }
   }
 
   speakAudioFallback(text, lang = 'hi') {
@@ -485,18 +486,19 @@ class WeatherSpeaker {
     const aqiEl = document.getElementById('speaker-chip-aqi');
     const rainEl = document.getElementById('speaker-chip-rain');
 
-    if (tempEl) tempEl.textContent = `${data.temp}°C`;
-    if (windEl) windEl.textContent = `${data.windSpeed} km/h`;
+    if (tempEl) tempEl.textContent = `${data.temp ?? 30}°C`;
+    if (windEl) windEl.textContent = `${data.windSpeed ?? 12} km/h`;
     if (aqiEl) {
-      const statusLabel = data.aqi ? data.aqi.status.label : "--";
-      aqiEl.textContent = `${data.aqi ? data.aqi.value : "--"} (${statusLabel})`;
+      const aqiVal = data.aqi ? (data.aqi.value ?? "--") : "--";
+      const statusLabel = data.aqi ? (typeof data.aqi.status === 'object' ? (data.aqi.status.label || '--') : (data.aqi.status || '--')) : "--";
+      aqiEl.textContent = `${aqiVal} (${statusLabel})`;
     }
     if (rainEl) {
       let shortRain = "No Rain";
       if (data.precipitation > 0) {
         shortRain = "Raining Now";
-      } else if (data.hourly) {
-        const rHour = data.hourly.find(h => h.pop >= 30);
+      } else if (data.hourly && Array.isArray(data.hourly)) {
+        const rHour = data.hourly.find(h => h && h.pop >= 30);
         if (rHour) {
           shortRain = `${rHour.time} (${rHour.pop}%)`;
         }

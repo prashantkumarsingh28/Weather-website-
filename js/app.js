@@ -44,8 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
   audioEngine = new WeatherAudioEngine();
   weatherSpeaker = new WeatherSpeaker();
 
-  // Populate Cities List & News Feed
-  renderCitiesList(INDIAN_CITIES);
+  // Render Search History & Weather News Feed
+  renderSearchHistory();
   renderWeatherNewsFeed();
 
   // Setup Search Engine
@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load Initial Weather & Climate Data
   selectCity(currentCity);
 
-  // Default to Introduction view on page load
-  switchNavTab('intro');
+  // Default to Weather view on page load so all details are visible immediately
+  switchNavTab('weather');
 
   // Render Climate Tab Visuals
   initClimateCharts();
@@ -82,15 +82,24 @@ function switchNavTab(tabName) {
   const activeView = document.getElementById(`view-${tabName}`);
   if (activeView) activeView.classList.add('active');
 
-  // Control top nav speaker button visibility (ONLY visible on Weather tab)
-  const navSpeakerBtn = document.getElementById('speaker-nav-btn');
-  if (navSpeakerBtn) {
-    navSpeakerBtn.style.display = (tabName === 'weather') ? 'flex' : 'none';
-  }
+  const isWeatherTab = (tabName === 'weather');
 
-  // Stop active speech if user leaves weather tab
-  if (tabName !== 'weather' && weatherSpeaker) {
-    weatherSpeaker.stop();
+  // Control Weather-only top buttons and IMD Banner (ONLY visible on Weather tab)
+  const navSpeakerBtn = document.getElementById('speaker-nav-btn');
+  const audioToggleBtn = document.getElementById('audio-toggle-btn');
+  const alertsBanner = document.getElementById('alerts-banner');
+
+  if (navSpeakerBtn) navSpeakerBtn.style.display = isWeatherTab ? 'flex' : 'none';
+  if (audioToggleBtn) audioToggleBtn.style.display = isWeatherTab ? 'flex' : 'none';
+  if (alertsBanner) alertsBanner.style.display = isWeatherTab ? 'flex' : 'none';
+
+  // Stop active speech and ambient soundscape if user leaves weather tab
+  if (!isWeatherTab) {
+    if (weatherSpeaker) weatherSpeaker.stop();
+    if (audioEngine && audioEngine.isPlaying) {
+      audioEngine.stop();
+      if (audioToggleBtn) audioToggleBtn.classList.remove('active');
+    }
   }
 
   if (tabName === 'climate') {
@@ -98,75 +107,174 @@ function switchNavTab(tabName) {
   }
 }
 
-// Render Side List of Cities
-function renderCitiesList(cities) {
-  const container = document.getElementById('cities-list');
+// SEARCH HISTORY MANAGEMENT
+function getSearchHistory() {
+  try {
+    const saved = localStorage.getItem('weather_search_history');
+    return saved ? JSON.parse(saved) : [];
+  } catch(e) {
+    return [];
+  }
+}
+
+function addToSearchHistory(cityData) {
+  if (!cityData) return;
+  try {
+    let history = getSearchHistory();
+    // Filter out existing item with same city name
+    history = history.filter(item => item.name.toLowerCase() !== cityData.city.toLowerCase());
+    // Prepend new item
+    history.unshift({
+      name: cityData.city,
+      state: cityData.state,
+      temp: cityData.temp,
+      icon: cityData.icon,
+      condition: cityData.condition
+    });
+    // Keep max 6 items
+    history = history.slice(0, 6);
+    localStorage.setItem('weather_search_history', JSON.stringify(history));
+    renderSearchHistory();
+  } catch(e) {}
+}
+
+function renderSearchHistory() {
+  const container = document.getElementById('search-history-list');
   if (!container) return;
 
-  container.innerHTML = cities.map(city => `
-    <div class="city-row ${city.name === currentCity.name ? 'active' : ''}" onclick="selectCityByName('${city.name}')">
-      <div class="city-info">
-        <h4>${city.name}</h4>
-        <p>${city.state}</p>
+  const history = getSearchHistory();
+  if (history.length === 0) {
+    container.innerHTML = `<div style="text-align: center; font-size: 0.82rem; color: var(--text-muted); padding: 1rem 0;">No recent searches yet. Search any city above!</div>`;
+    return;
+  }
+
+  container.innerHTML = history.map(item => `
+    <div class="history-item ${item.name === currentCity.name ? 'active' : ''}" onclick="selectCityByName('${item.name}')">
+      <div class="history-info">
+        <i data-lucide="clock" class="history-clock-icon"></i>
+        <div>
+          <h4>${item.name}</h4>
+          <p>${item.state}</p>
+        </div>
       </div>
-      <div class="city-temp-tag" id="city-temp-${city.name.replace(/[^a-zA-Z0-9]/g, '')}">--°C</div>
+      <div class="history-temp-badge">
+        <i data-lucide="${item.icon || 'sun'}"></i>
+        <span>${item.temp}°C</span>
+      </div>
     </div>
   `).join('');
+
+  lucide.createIcons();
+}
+
+function clearSearchHistory() {
+  try {
+    localStorage.removeItem('weather_search_history');
+    renderSearchHistory();
+  } catch(e) {}
+}
+
+// CLEAR SEARCH INPUT CROSS BUTTON ROUTINE
+function clearCitySearch() {
+  const input = document.getElementById('city-search-input');
+  const clearBtn = document.getElementById('clear-search-btn');
+  const results = document.getElementById('search-results');
+
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  if (clearBtn) clearBtn.classList.add('hidden');
+  if (results) results.classList.remove('active');
+}
+
+function updateSearchClearButton() {
+  const input = document.getElementById('city-search-input');
+  const clearBtn = document.getElementById('clear-search-btn');
+  if (input && clearBtn) {
+    if (input.value.trim().length > 0) {
+      clearBtn.classList.remove('hidden');
+    } else {
+      clearBtn.classList.add('hidden');
+    }
+  }
 }
 
 function selectCityByName(cityName) {
-  const city = INDIAN_CITIES.find(c => c.name === cityName);
+  const city = INDIAN_CITIES.find(c => c.name.toLowerCase() === cityName.toLowerCase());
   if (city) selectCity(city);
 }
 
 // Main City Selection Routine
 async function selectCity(city) {
+  if (!city) return;
   currentCity = city;
 
-  // Persist selected city to cookies & local storage
-  setCookie('last_searched_city', city.name, 365);
+  try {
+    // Persist selected city to cookies & local storage
+    setCookie('last_searched_city', city.name, 365);
 
-  // Highlight active city
-  document.querySelectorAll('.city-row').forEach(row => row.classList.remove('active'));
-  document.querySelectorAll('.city-row').forEach(row => {
-    if (row.querySelector('h4') && row.querySelector('h4').textContent === city.name) {
-      row.classList.add('active');
+    // Set Search Input box text and show clear button
+    const searchInput = document.getElementById('city-search-input');
+    if (searchInput) {
+      searchInput.value = city.name;
+      updateSearchClearButton();
     }
-  });
 
-  // Fetch live weather data
-  const data = await WeatherAPI.fetchCityWeather(city);
+    // Fetch live weather data with guaranteed fallback object
+    let data;
+    try {
+      data = await WeatherAPI.fetchCityWeather(city);
+    } catch(e) {
+      console.warn("Weather API fetch error, generating fallback data:", e);
+      data = WeatherAPI.generateFallbackData(city);
+    }
 
-  // Update Dashboard Widgets
-  updateHeroDashboard(data);
-  updateHourlyCards(data.hourly);
-  updateAQIWidget(data.aqi);
-  updateHourlyChart(data.hourly);
-  update7DayForecast(data.daily, data.city);
-  renderWeatherNewsFeed(data);
+    if (!data) {
+      data = WeatherAPI.generateFallbackData(city);
+    }
 
-  // Update 3D Sky Visuals & Procedural Audio
-  scene3D.setWeatherCategory(data.category);
-  if (audioEngine) audioEngine.setSoundType(data.category);
+    currentWeatherData = data;
 
-  // Update Advisory & Precautions
-  currentAlerts = AlertsSystem.getAlertsForLocation(data);
-  updateAdvisoryPrecautions(currentAlerts[0]);
-  updateAlertsBanner(currentAlerts[0]);
+    // Add to Search History
+    addToSearchHistory(data);
 
-  // Update Sidebar Temp Tag
-  const tagId = `city-temp-${city.name.replace(/[^a-zA-Z0-9]/g, '')}`;
-  const tagEl = document.getElementById(tagId);
-  if (tagEl) tagEl.textContent = `${data.temp}°C`;
+    // Update Dashboard Widgets safely
+    try { updateHeroDashboard(data); } catch(e) { console.error("updateHeroDashboard error:", e); }
+    try { updateHourlyCards(data.hourly || []); } catch(e) { console.error("updateHourlyCards error:", e); }
+    try { updateAQIWidget(data.aqi); } catch(e) { console.error("updateAQIWidget error:", e); }
+    try { updateHourlyChart(data.hourly || []); } catch(e) { console.error("updateHourlyChart error:", e); }
+    try { update7DayForecast(data.daily || [], data.city); } catch(e) { console.error("update7DayForecast error:", e); }
+    try { renderWeatherNewsFeed(data); } catch(e) { console.error("renderWeatherNewsFeed error:", e); }
 
-  // Update Weather Voice Speaker Widget Data
-  currentWeatherData = data;
-  if (weatherSpeaker) {
-    weatherSpeaker.updateWidgetData(data);
+    // Update 3D Sky Visuals & Procedural Audio
+    if (scene3D && data.category) scene3D.setWeatherCategory(data.category);
+    if (audioEngine && data.category) audioEngine.setSoundType(data.category);
+
+    // Update Advisory & Precautions
+    try {
+      currentAlerts = AlertsSystem.getAlertsForLocation(data);
+      if (currentAlerts && currentAlerts.length > 0) {
+        updateAdvisoryPrecautions(currentAlerts[0]);
+        updateAlertsBanner(currentAlerts[0]);
+      }
+    } catch(e) {
+      console.error("AlertsSystem error:", e);
+    }
+
+    // Update Weather Voice Speaker Widget Data
+    if (weatherSpeaker) {
+      weatherSpeaker.updateWidgetData(data);
+    }
+
+    // Automatically switch to Weather View tab to present all weather details
+    switchNavTab('weather');
+
+    // Update Climate Tab if active
+    try { updateCityClimateProfile(city); } catch(e) {}
+  } catch(err) {
+    console.error("Fatal error in selectCity:", err);
   }
-
-  // Update Climate Tab if active
-  updateCityClimateProfile(city);
 }
 
 // "Update Weather Now" Button Routine
@@ -192,15 +300,26 @@ async function updateWeatherNow() {
 
 // Hero Weather Dashboard Updater
 function updateHeroDashboard(data) {
-  document.getElementById('current-city-name').textContent = data.city;
-  document.getElementById('current-state-name').textContent = `${data.state} • India`;
-  document.getElementById('current-temp').textContent = `${data.temp}°C`;
-  document.getElementById('current-condition').textContent = data.condition;
-  document.getElementById('feels-like-temp').textContent = `${data.feelsLike}°C`;
+  if (!data) return;
+  const cityNameEl = document.getElementById('current-city-name');
+  const stateNameEl = document.getElementById('current-state-name');
+  const tempEl = document.getElementById('current-temp');
+  const conditionEl = document.getElementById('current-condition');
+  const feelsLikeEl = document.getElementById('feels-like-temp');
 
-  document.getElementById('stat-humidity').textContent = `${data.humidity}%`;
-  document.getElementById('stat-wind').textContent = `${data.windSpeed} km/h`;
-  document.getElementById('stat-pressure').textContent = `${data.pressure} hPa`;
+  const humidityEl = document.getElementById('stat-humidity');
+  const windEl = document.getElementById('stat-wind');
+  const pressureEl = document.getElementById('stat-pressure');
+
+  if (cityNameEl) cityNameEl.textContent = data.city || "New Delhi";
+  if (stateNameEl) stateNameEl.textContent = `${data.state || "Delhi NCR"} • India`;
+  if (tempEl) tempEl.textContent = `${data.temp ?? 32}°C`;
+  if (conditionEl) conditionEl.textContent = data.condition || "Clear Sky";
+  if (feelsLikeEl) feelsLikeEl.textContent = `${data.feelsLike ?? data.temp ?? 34}°C`;
+
+  if (humidityEl) humidityEl.textContent = `${data.humidity ?? 70}%`;
+  if (windEl) windEl.textContent = `${data.windSpeed ?? 12} km/h`;
+  if (pressureEl) pressureEl.textContent = `${data.pressure ?? 1010} hPa`;
 
   // Sun & Daylight Cycle Widget Fields
   const sunriseEl = document.getElementById('stat-sunrise');
@@ -214,6 +333,10 @@ function updateHeroDashboard(data) {
   if (sunsetEl) sunsetEl.textContent = data.sunset || "07:12 PM";
   if (dayHoursEl) dayHoursEl.textContent = data.dayHours || "13 hrs 7 mins";
   if (nightHoursEl) nightHoursEl.textContent = data.nightHours || "10 hrs 53 mins";
+  if (maxTempEl) maxTempEl.textContent = `${data.maxTemp ?? ((data.temp ?? 30) + 3)}°C`;
+  if (minTempEl) minTempEl.textContent = `${data.minTemp ?? ((data.temp ?? 30) - 5)}°C`;
+  if (dayHoursEl) dayHoursEl.textContent = data.dayHours || "13 hrs 7 mins";
+  if (nightHoursEl) nightHoursEl.textContent = data.nightHours || "10 hrs 53 mins";
   if (maxTempEl) maxTempEl.textContent = `${data.maxTemp || data.temp + 3}°C`;
   if (minTempEl) minTempEl.textContent = `${data.minTemp || data.temp - 5}°C`;
 
@@ -222,6 +345,36 @@ function updateHeroDashboard(data) {
     lastUpdatedEl.textContent = data.lastUpdated || new Date().toLocaleString('en-IN', {
       day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
+  }
+
+  // Live Rain Intensity & Precipitation Alert Card
+  const rainAlertCard = document.getElementById('rain-intensity-alert');
+  const rInfo = data.rainInfo || (typeof WeatherAPI !== 'undefined' ? WeatherAPI.getRainIntensityInfo(data.precipitation || 0, data.condition) : null);
+
+  if (rainAlertCard) {
+    if (rInfo && rInfo.isRaining) {
+      rainAlertCard.classList.remove('hidden');
+      const badgeEl = document.getElementById('rain-intensity-badge');
+      const titleEl = document.getElementById('rain-alert-title');
+      const amountEl = document.getElementById('rain-amount-val');
+      const chanceEl = document.getElementById('rain-chance-val');
+      
+      if (badgeEl) {
+        badgeEl.textContent = rInfo.intensityEn;
+        badgeEl.style.background = rInfo.color;
+      }
+      if (titleEl) {
+        titleEl.textContent = `Active Precipitation in ${data.city} (${data.condition})`;
+      }
+      if (amountEl) {
+        amountEl.textContent = rInfo.amountText;
+      }
+      if (chanceEl) {
+        chanceEl.textContent = `${data.hourly && data.hourly[0] ? data.hourly[0].pop : 80}%`;
+      }
+    } else {
+      rainAlertCard.classList.add('hidden');
+    }
   }
 
   const iconEl = document.getElementById('current-weather-icon');
@@ -324,17 +477,29 @@ function updateAQIWidget(aqi) {
   const labelEl = document.getElementById('aqi-label');
   const dotEl = document.getElementById('aqi-indicator-dot');
 
-  valEl.textContent = aqi.value;
-  labelEl.textContent = aqi.status.label;
-  labelEl.style.color = aqi.status.color;
+  const aqiVal = aqi.value ?? 85;
+  const statusObj = (typeof aqi.status === 'object' && aqi.status !== null) ? aqi.status : { label: (aqi.status || 'Moderate'), color: '#f59e0b' };
 
-  const percentage = Math.min(100, Math.max(0, (aqi.value / 400) * 100));
-  dotEl.style.left = `${percentage}%`;
+  if (valEl) valEl.textContent = aqiVal;
+  if (labelEl) {
+    labelEl.textContent = statusObj.label || 'Moderate';
+    labelEl.style.color = statusObj.color || '#f59e0b';
+  }
 
-  document.getElementById('aqi-pm25').textContent = `${aqi.pm25} µg/m³`;
-  document.getElementById('aqi-pm10').textContent = `${aqi.pm10} µg/m³`;
-  document.getElementById('aqi-no2').textContent = `${aqi.no2} ppb`;
-  document.getElementById('aqi-o3').textContent = `${aqi.o3} ppb`;
+  if (dotEl) {
+    const percentage = Math.min(100, Math.max(0, (aqiVal / 400) * 100));
+    dotEl.style.left = `${percentage}%`;
+  }
+
+  const pm25El = document.getElementById('aqi-pm25');
+  const pm10El = document.getElementById('aqi-pm10');
+  const no2El = document.getElementById('aqi-no2');
+  const o3El = document.getElementById('aqi-o3');
+
+  if (pm25El) pm25El.textContent = `${aqi.pm25 ?? 35} µg/m³`;
+  if (pm10El) pm10El.textContent = `${aqi.pm10 ?? 65} µg/m³`;
+  if (no2El) no2El.textContent = `${aqi.no2 ?? 20} ppb`;
+  if (o3El) o3El.textContent = `${aqi.o3 ?? 28} ppb`;
 }
 
 // 24-Hour Temperature Chart Updater
@@ -619,7 +784,10 @@ function setupSearchEngine() {
   const input = document.getElementById('city-search-input');
   const results = document.getElementById('search-results');
 
+  if (!input) return;
+
   input.addEventListener('input', (e) => {
+    updateSearchClearButton();
     const query = e.target.value.toLowerCase().trim();
     if (query.length < 1) {
       results.classList.remove('active');
@@ -652,8 +820,13 @@ function setupSearchEngine() {
 
 function selectCityFromSearch(name) {
   selectCityByName(name);
-  document.getElementById('city-search-input').value = '';
-  document.getElementById('search-results').classList.remove('active');
+  const searchInput = document.getElementById('city-search-input');
+  if (searchInput) {
+    searchInput.value = name;
+    updateSearchClearButton();
+  }
+  const results = document.getElementById('search-results');
+  if (results) results.classList.remove('active');
 }
 
 function filterByRegion(region) {

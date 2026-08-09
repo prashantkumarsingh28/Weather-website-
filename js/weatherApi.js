@@ -126,6 +126,9 @@ class WeatherAPI {
     const maxTempToday = daily.length > 0 ? daily[0].maxTemp : Math.round(curr.temperature_2m) + 3;
     const minTempToday = daily.length > 0 ? daily[0].minTemp : Math.round(curr.temperature_2m) - 5;
 
+    const precipVal = curr.precipitation || 0;
+    const rainInfo = this.getRainIntensityInfo(precipVal, codeInfo.condition);
+
     return {
       city: city.name,
       state: city.state,
@@ -141,7 +144,8 @@ class WeatherAPI {
       windDir: curr.wind_direction_10m,
       pressure: Math.round(curr.pressure_msl || curr.surface_pressure || 1013),
       cloudCover: curr.cloud_cover,
-      precipitation: curr.precipitation || 0,
+      precipitation: precipVal,
+      rainInfo: rainInfo,
       condition: codeInfo.condition,
       icon: codeInfo.icon,
       category: codeInfo.category,
@@ -204,30 +208,22 @@ class WeatherAPI {
       category = "sunny";
     }
 
+    const precipVal = category === 'rainy' ? 14.5 : 0;
+    const rainInfo = this.getRainIntensityInfo(precipVal, condition);
+
     const hourly = [];
     const nowH = new Date().getHours();
     for (let i = 0; i < 24; i++) {
-      const hourVal = (nowH + i) % 24;
-      const ampm = hourVal >= 12 ? 'PM' : 'AM';
-      const displayHour = hourVal % 12 === 0 ? 12 : hourVal % 12;
-      
-      let hIcon = "sun";
-      let hCondition = "Clear Sky";
-      if (category === "rainy" && i % 3 === 0) {
-        hIcon = "cloud-rain";
-        hCondition = "Rain Showers";
-      } else if (i % 2 === 1) {
-        hIcon = "cloud-sun";
-        hCondition = "Partly Cloudy";
-      }
-
+      const hTime = (nowH + i) % 24;
+      const ampm = hTime >= 12 ? 'PM' : 'AM';
+      const formattedHour = (hTime % 12 || 12).toString().padStart(2, '0');
       hourly.push({
-        time: `${displayHour}:00 ${ampm}`,
-        temp: Math.round(baseTemp + Math.sin(i / 3) * 3),
-        pop: category === 'rainy' ? 65 : 15,
-        code: 1,
-        icon: hIcon,
-        condition: hCondition
+        time: `${formattedHour}:00 ${ampm}`,
+        temp: baseTemp + (i % 5) - 2,
+        pop: category === 'rainy' ? 85 : 15,
+        code: category === 'rainy' ? 65 : 0,
+        icon: icon,
+        condition: condition
       });
     }
 
@@ -263,7 +259,8 @@ class WeatherAPI {
       windDir: 210,
       pressure: 1010,
       cloudCover: 55,
-      precipitation: 3.2,
+      precipitation: precipVal,
+      rainInfo: rainInfo,
       condition: condition,
       icon: icon,
       category: category,
