@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 
 :root {
   --bg-primary: #e0f2fe;
@@ -169,13 +170,16 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* TOP NAVIGATION TABS (Weather, Climate, Feedback) */
+/* TOP NAVIGATION TABS (Intro, Weather, Climate, Feedback) */
 .nav-tabs {
   display: flex;
   background: rgba(226, 232, 240, 0.7);
   padding: 0.25rem;
   border-radius: 30px;
   border: 1px solid rgba(255, 255, 255, 0.8);
+  position: relative;
+  z-index: 100;
+  pointer-events: auto;
 }
 
 .tab-btn {
@@ -191,6 +195,9 @@ body {
   align-items: center;
   gap: 0.5rem;
   transition: all 0.25s ease;
+  position: relative;
+  z-index: 101;
+  pointer-events: auto;
 }
 
 .tab-btn:hover {
@@ -299,13 +306,13 @@ body {
 
 /* Tab Views Management */
 .tab-view {
-  display: none;
+  display: none !important;
   animation: fadeIn 0.3s ease;
   width: 100%;
 }
 
 .tab-view.active {
-  display: block;
+  display: block !important;
 }
 
 @keyframes fadeIn {
@@ -3001,5 +3008,175 @@ i[data-lucide]:hover {
     border-radius: var(--radius-md);
   }
 }
+
+/* ==========================================================================
+   VIBRANT COLORFUL THEMES & BOLD TYPOGRAPHY FOR WEATHER SAFETY & HIGHLIGHTS
+   ========================================================================== */
+
+/* Bold Typography Utility Classes for Important Lines */
+.bold-important {
+  font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  background: linear-gradient(120deg, rgba(254, 240, 138, 0.75) 0%, rgba(253, 224, 71, 0.5) 100%);
+  padding: 0.12rem 0.4rem;
+  border-radius: 5px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: inline;
+}
+
+.highlight-line {
+  font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+  font-weight: 700;
+  color: #0f172a;
+  border-left: 4px solid var(--accent-cyan);
+  padding: 0.6rem 1rem;
+  background: rgba(240, 249, 255, 0.9);
+  border-radius: 0 12px 12px 0;
+  margin: 0.45rem 0;
+  box-shadow: 0 3px 12px rgba(2, 132, 199, 0.1);
+  display: block;
+}
+
+.safety-bold-alert {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  color: #b91c1c;
+  background: rgba(254, 226, 226, 0.95);
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid rgba(248, 113, 113, 0.5);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.12);
+}
+
+.metric-value-bold {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+/* Dynamic Weather Theme Card Gradients */
+.hero-weather-card.theme-sunny {
+  background: linear-gradient(135deg, rgba(255, 251, 235, 0.96) 0%, rgba(254, 243, 199, 0.93) 50%, rgba(253, 230, 138, 0.9) 100%) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 12px 36px rgba(245, 158, 11, 0.18) !important;
+}
+
+.hero-weather-card.theme-rainy {
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.96) 0%, rgba(224, 242, 254, 0.93) 50%, rgba(186, 230, 253, 0.9) 100%) !important;
+  border: 1.5px solid rgba(2, 132, 199, 0.45) !important;
+  box-shadow: 0 12px 36px rgba(2, 132, 199, 0.18) !important;
+}
+
+.hero-weather-card.theme-storm {
+  background: linear-gradient(135deg, rgba(245, 243, 255, 0.96) 0%, rgba(237, 233, 254, 0.93) 50%, rgba(221, 214, 254, 0.9) 100%) !important;
+  border: 1.5px solid rgba(139, 92, 246, 0.45) !important;
+  box-shadow: 0 12px 36px rgba(139, 92, 246, 0.2) !important;
+}
+
+.hero-weather-card.theme-fog {
+  background: linear-gradient(135deg, rgba(240, 253, 250, 0.96) 0%, rgba(204, 251, 241, 0.93) 50%, rgba(203, 213, 225, 0.9) 100%) !important;
+  border: 1.5px solid rgba(20, 184, 166, 0.45) !important;
+  box-shadow: 0 12px 36px rgba(20, 184, 166, 0.18) !important;
+}
+
+.hero-weather-card.theme-heatwave {
+  background: linear-gradient(135deg, rgba(254, 242, 242, 0.96) 0%, rgba(254, 226, 226, 0.93) 50%, rgba(254, 202, 202, 0.9) 100%) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.5) !important;
+  box-shadow: 0 12px 36px rgba(239, 68, 68, 0.22) !important;
+}
+
+/* Enhanced Do's and Don'ts Visual Precautions Grid */
+.visual-dos-card {
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.95) 0%, rgba(209, 250, 229, 0.9) 100%);
+  border: 1.5px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.visual-dos-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(16, 185, 129, 0.18);
+}
+
+.visual-donts-card {
+  background: linear-gradient(135deg, rgba(254, 242, 242, 0.95) 0%, rgba(254, 226, 226, 0.9) 100%);
+  border: 1.5px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.visual-donts-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(239, 68, 68, 0.18);
+}
+
+.dos-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #047857;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+}
+
+.donts-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #b91c1c;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(239, 68, 68, 0.3);
+}
+
+.dos-ul, .donts-ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.dos-ul li, .donts-ul li {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #1e293b;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.dos-ul li i {
+  color: #059669;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.donts-ul li i {
+  color: #dc2626;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
 
 

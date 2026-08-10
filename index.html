@@ -9,7 +9,7 @@
   <!-- Google Fonts: Space Grotesk, Outfit, Inter, Courier Prime & Comic Neue -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Comic+Neue:ital,wght@0,400;0,700;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Comic+Neue:ital,wght@0,400;0,700;1,700&display=swap" rel="stylesheet">
 
   <!-- Style & Fonts -->
   <link rel="stylesheet" href="./css/style.css?v=3.0">
@@ -18,6 +18,128 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Navigation & Translation Core Handler (Early Execution) -->
+  <script>
+    function switchNavTab(tabName) {
+      if (!tabName) return;
+
+      var buttons = document.querySelectorAll('.tab-btn');
+      for (var i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove('active');
+      }
+      var activeBtn = document.getElementById('tab-btn-' + tabName);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      var views = document.querySelectorAll('.tab-view');
+      for (var j = 0; j < views.length; j++) {
+        views[j].classList.remove('active');
+      }
+      var activeView = document.getElementById('view-' + tabName);
+      if (activeView) {
+        activeView.classList.add('active');
+      }
+
+      try {
+        localStorage.setItem('weather_app_active_tab', tabName);
+      } catch(e) {}
+
+      var isWeather = (tabName === 'weather');
+      var speakerBtn = document.getElementById('speaker-nav-btn');
+      var audioBtn = document.getElementById('audio-toggle-btn');
+      var alertsBanner = document.getElementById('alerts-banner');
+
+      if (speakerBtn) speakerBtn.style.display = isWeather ? 'flex' : 'none';
+      if (audioBtn) audioBtn.style.display = isWeather ? 'flex' : 'none';
+      if (alertsBanner) alertsBanner.style.display = isWeather ? 'flex' : 'none';
+
+      if (!isWeather) {
+        if (typeof weatherSpeaker !== 'undefined' && weatherSpeaker) weatherSpeaker.stop();
+        if (typeof audioEngine !== 'undefined' && audioEngine && audioEngine.isPlaying) {
+          audioEngine.stop();
+          if (audioBtn) audioBtn.classList.remove('active');
+        }
+        if (typeof closeAlertModal === 'function') closeAlertModal();
+      }
+
+      if (tabName === 'climate' && typeof updateCityClimateProfile === 'function' && typeof currentCity !== 'undefined') {
+        updateCityClimateProfile(currentCity);
+      }
+
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+      }
+    }
+
+    function setIntroLanguage(lang) {
+      var enBtn = document.getElementById('intro-lang-en');
+      var hiBtn = document.getElementById('intro-lang-hi');
+
+      if (lang === 'en') {
+        if (enBtn) enBtn.classList.add('active');
+        if (hiBtn) hiBtn.classList.remove('active');
+
+        document.querySelectorAll('.text-en').forEach(function(el) { el.classList.remove('hidden'); });
+        document.querySelectorAll('.text-hi').forEach(function(el) { el.classList.add('hidden'); });
+
+        document.querySelectorAll('[data-en]').forEach(function(el) {
+          var val = el.getAttribute('data-en');
+          if (val) {
+            var icon = el.querySelector('i');
+            if (icon) {
+              el.innerHTML = icon.outerHTML + ' ' + val;
+            } else {
+              el.textContent = val;
+            }
+          }
+        });
+      } else {
+        if (hiBtn) hiBtn.classList.add('active');
+        if (enBtn) enBtn.classList.remove('active');
+
+        document.querySelectorAll('.text-hi').forEach(function(el) { el.classList.remove('hidden'); });
+        document.querySelectorAll('.text-en').forEach(function(el) { el.classList.add('hidden'); });
+
+        document.querySelectorAll('[data-hi]').forEach(function(el) {
+          var val = el.getAttribute('data-hi');
+          if (val) {
+            var icon = el.querySelector('i');
+            if (icon) {
+              el.innerHTML = icon.outerHTML + ' ' + val;
+            } else {
+              el.textContent = val;
+            }
+          }
+        });
+      }
+
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+      }
+    }
+
+    window.switchNavTab = switchNavTab;
+    window.setIntroLanguage = setIntroLanguage;
+
+    (function() {
+      try {
+        var hasVisited = localStorage.getItem('weather_app_has_visited');
+        var savedTab = localStorage.getItem('weather_app_active_tab');
+
+        var targetTab = 'intro';
+        if (!hasVisited) {
+          localStorage.setItem('weather_app_has_visited', 'true');
+          targetTab = 'intro';
+        } else if (savedTab && ['intro', 'weather', 'climate', 'feedback'].indexOf(savedTab) !== -1) {
+          targetTab = savedTab;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+          switchNavTab(targetTab);
+        });
+      } catch(e) {}
+    })();
+  </script>
 </head>
 <body>
 
@@ -68,18 +190,6 @@
     </div>
   </header>
 
-  <!-- IMD Severe Weather Alert Banner -->
-  <div id="alerts-banner" class="alerts-banner">
-    <div class="alert-badge">
-      <div class="badge-dot"></div>
-      <span id="alert-type-text">IMD Severe Weather Watch</span>
-    </div>
-    <div class="alert-text" id="alert-summary-text">
-      Heavy monsoon rainfall & squally winds reported across regional sectors.
-    </div>
-    <button class="alert-action-btn" onclick="openAlertModal()">SAFETY ADVISORY</button>
-  </div>
-
   <!-- Main Content Layout -->
   <main class="main-layout">
 
@@ -95,7 +205,7 @@
             </div>
             <h2>Introduction to India's Weather & Climate</h2>
             <p class="intro-subtext">
-              मौसम और जलवायु विज्ञान का व्यापक अध्ययन: जानें दैनिक वायुमंडलीय मौसम, मानसूनी हवाओं और 30-वर्षीय दीर्घकालिक जलवायु पैटर्न के बीच का अंतर।
+              <strong class="bold-important">मौसम और जलवायु विज्ञान का व्यापक अध्ययन:</strong> जानें <strong class="bold-important">दैनिक वायुमंडलीय मौसम</strong>, मानसूनी हवाओं और 30-वर्षीय दीर्घकालिक जलवायु पैटर्न के बीच का अंतर।
             </p>
 
             <!-- Language Switcher for Intro -->
@@ -305,6 +415,19 @@
 
     <!-- ==================== TAB 1: LIVE WEATHER VIEW ==================== -->
     <section id="view-weather" class="tab-view">
+
+      <!-- IMD Severe Weather Alert Banner (Weather Page Only) -->
+      <div id="alerts-banner" class="alerts-banner" style="margin-bottom: 1.25rem; border-radius: var(--radius-md);">
+        <div class="alert-badge">
+          <div class="badge-dot"></div>
+          <span id="alert-type-text">IMD Severe Weather Watch</span>
+        </div>
+        <div class="alert-text" id="alert-summary-text">
+          Heavy monsoon rainfall & squally winds reported across regional sectors.
+        </div>
+        <button class="alert-action-btn" onclick="openAlertModal()">SAFETY ADVISORY</button>
+      </div>
+
       <div class="weather-grid">
 
         <!-- Sidebar Location Engine -->
@@ -337,7 +460,22 @@
               </button>
             </div>
             <div id="search-history-list" class="history-list">
-              <!-- Dynamically populated search history -->
+              <div class="history-item" onclick="selectCityByName('New Delhi')">
+                <span>New Delhi, Delhi NCR</span>
+                <i data-lucide="chevron-right"></i>
+              </div>
+              <div class="history-item" onclick="selectCityByName('Mumbai')">
+                <span>Mumbai, Maharashtra</span>
+                <i data-lucide="chevron-right"></i>
+              </div>
+              <div class="history-item" onclick="selectCityByName('Bengaluru')">
+                <span>Bengaluru, Karnataka</span>
+                <i data-lucide="chevron-right"></i>
+              </div>
+              <div class="history-item" onclick="selectCityByName('Kolkata')">
+                <span>Kolkata, West Bengal</span>
+                <i data-lucide="chevron-right"></i>
+              </div>
             </div>
           </div>
 
@@ -425,7 +563,42 @@
                 <span>Hourly Temperature & Condition Forecast</span>
               </div>
               <div id="hourly-cards-wrap" class="hourly-scroll-wrap">
-                <!-- Dynamically populated hourly cards -->
+                <div class="hourly-card active">
+                  <span class="h-time">Now</span>
+                  <i data-lucide="sun" class="h-icon"></i>
+                  <span class="h-temp">32°C</span>
+                  <span class="h-pop"><i data-lucide="droplets"></i> 10%</span>
+                </div>
+                <div class="hourly-card">
+                  <span class="h-time">02:00 PM</span>
+                  <i data-lucide="sun" class="h-icon"></i>
+                  <span class="h-temp">34°C</span>
+                  <span class="h-pop"><i data-lucide="droplets"></i> 15%</span>
+                </div>
+                <div class="hourly-card">
+                  <span class="h-time">04:00 PM</span>
+                  <i data-lucide="cloud-sun" class="h-icon"></i>
+                  <span class="h-temp">33°C</span>
+                  <span class="h-pop"><i data-lucide="droplets"></i> 20%</span>
+                </div>
+                <div class="hourly-card">
+                  <span class="h-time">06:00 PM</span>
+                  <i data-lucide="sunset" class="h-icon"></i>
+                  <span class="h-temp">30°C</span>
+                  <span class="h-pop"><i data-lucide="droplets"></i> 25%</span>
+                </div>
+                <div class="hourly-card">
+                  <span class="h-time">08:00 PM</span>
+                  <i data-lucide="moon" class="h-icon"></i>
+                  <span class="h-temp">28°C</span>
+                  <span class="h-pop"><i data-lucide="droplets"></i> 10%</span>
+                </div>
+                <div class="hourly-card">
+                  <span class="h-time">10:00 PM</span>
+                  <i data-lucide="moon" class="h-icon"></i>
+                  <span class="h-temp">26°C</span>
+                  <span class="h-pop"><i data-lucide="droplets"></i> 5%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -522,7 +695,18 @@
                 Favorable seasonal weather active across the region. Keep hydrated during peak sun hours.
               </p>
               <div id="precautions-list" class="precautions-list">
-                <!-- Dynamically populated precautions -->
+                <div class="precaution-item">
+                  <i data-lucide="check-circle-2" style="color: var(--accent-emerald);"></i>
+                  <span>Stay well hydrated and carry a water bottle during afternoon peak heat hours.</span>
+                </div>
+                <div class="precaution-item">
+                  <i data-lucide="check-circle-2" style="color: var(--accent-emerald);"></i>
+                  <span>Wear UV-protective sunglasses and lightweight breathable cotton clothing outdoor.</span>
+                </div>
+                <div class="precaution-item">
+                  <i data-lucide="check-circle-2" style="color: var(--accent-emerald);"></i>
+                  <span>Keep umbrellas or rain gear handy if sky conditions become cloudy in the evening.</span>
+                </div>
               </div>
             </div>
 
@@ -580,7 +764,18 @@
                   <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Sunrise • Sunset</span>
                 </div>
                 <div id="sun-7day-list" class="sun-7day-list">
-                  <!-- Dynamically populated 7-day daylight cycle cards -->
+                  <div class="sun-7day-card">
+                    <span class="sun-7day-date">Today</span>
+                    <span class="sun-7day-times"><i data-lucide="sunrise" style="width: 12px; color: #f59e0b;"></i> 06:05 AM &nbsp;|&nbsp; <i data-lucide="sunset" style="width: 12px; color: #ea580c;"></i> 07:12 PM</span>
+                  </div>
+                  <div class="sun-7day-card">
+                    <span class="sun-7day-date">Tomorrow</span>
+                    <span class="sun-7day-times"><i data-lucide="sunrise" style="width: 12px; color: #f59e0b;"></i> 06:06 AM &nbsp;|&nbsp; <i data-lucide="sunset" style="width: 12px; color: #ea580c;"></i> 07:11 PM</span>
+                  </div>
+                  <div class="sun-7day-card">
+                    <span class="sun-7day-date">Day 3</span>
+                    <span class="sun-7day-times"><i data-lucide="sunrise" style="width: 12px; color: #f59e0b;"></i> 06:06 AM &nbsp;|&nbsp; <i data-lucide="sunset" style="width: 12px; color: #ea580c;"></i> 07:10 PM</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -629,7 +824,22 @@
               </div>
 
               <div id="visual-precautions-container" class="visual-dos-donts-grid">
-                <!-- Dynamically populated with Do's (Green) & Don'ts (Red) and Animated Illustrations -->
+                <div class="visual-dos-card">
+                  <div class="visual-card-badge dos"><i data-lucide="check-circle-2"></i> DO'S (क्या करें)</div>
+                  <ul class="visual-list">
+                    <li><i data-lucide="check"></i> Stay hydrated and consume ORS, coconut water, or fresh fluids.</li>
+                    <li><i data-lucide="check"></i> Wear light-colored, loose, breathable cotton clothes outdoors.</li>
+                    <li><i data-lucide="check"></i> Carry umbrella or rain protection gear when heading outside.</li>
+                  </ul>
+                </div>
+                <div class="visual-donts-card">
+                  <div class="visual-card-badge donts"><i data-lucide="x-circle"></i> DON'TS (क्या न करें)</div>
+                  <ul class="visual-list">
+                    <li><i data-lucide="x"></i> Avoid direct sun exposure during peak heat hours (12 PM - 3 PM).</li>
+                    <li><i data-lucide="x"></i> Do not leave children or pets inside parked unventilated vehicles.</li>
+                    <li><i data-lucide="x"></i> Avoid standing near electrical poles or metal trees during lightning.</li>
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -640,7 +850,55 @@
                 <i data-lucide="calendar"></i>
               </div>
               <div id="forecast-7day-container" class="forecast-grid">
-                <!-- Dynamically populated -->
+                <div class="forecast-day-card">
+                  <div class="f-day-header"><span class="f-day-name">Mon</span><span class="f-date-tag">Today</span></div>
+                  <div class="f-icon-box"><i data-lucide="sun"></i></div>
+                  <div class="f-condition-text">Sunny</div>
+                  <div class="f-temp-range"><span class="f-max">34°</span><span class="f-min">25°</span></div>
+                  <div class="f-rain-badge"><i data-lucide="droplets"></i> 10% Rain</div>
+                </div>
+                <div class="forecast-day-card">
+                  <div class="f-day-header"><span class="f-day-name">Tue</span><span class="f-date-tag">Tomorrow</span></div>
+                  <div class="f-icon-box"><i data-lucide="cloud-sun"></i></div>
+                  <div class="f-condition-text">Partly Cloudy</div>
+                  <div class="f-temp-range"><span class="f-max">33°</span><span class="f-min">24°</span></div>
+                  <div class="f-rain-badge"><i data-lucide="droplets"></i> 25% Rain</div>
+                </div>
+                <div class="forecast-day-card">
+                  <div class="f-day-header"><span class="f-day-name">Wed</span><span class="f-date-tag">Day 3</span></div>
+                  <div class="f-icon-box"><i data-lucide="cloud-rain"></i></div>
+                  <div class="f-condition-text">Moderate Rain</div>
+                  <div class="f-temp-range"><span class="f-max">30°</span><span class="f-min">23°</span></div>
+                  <div class="f-rain-badge"><i data-lucide="droplets"></i> 70% Rain</div>
+                </div>
+                <div class="forecast-day-card">
+                  <div class="f-day-header"><span class="f-day-name">Thu</span><span class="f-date-tag">Day 4</span></div>
+                  <div class="f-icon-box"><i data-lucide="cloud-lightning"></i></div>
+                  <div class="f-condition-text">Thunderstorm</div>
+                  <div class="f-temp-range"><span class="f-max">29°</span><span class="f-min">22°</span></div>
+                  <div class="f-rain-badge"><i data-lucide="droplets"></i> 85% Rain</div>
+                </div>
+                <div class="forecast-day-card">
+                  <div class="f-day-header"><span class="f-day-name">Fri</span><span class="f-date-tag">Day 5</span></div>
+                  <div class="f-icon-box"><i data-lucide="cloud-sun"></i></div>
+                  <div class="f-condition-text">Scattered Rain</div>
+                  <div class="f-temp-range"><span class="f-max">31°</span><span class="f-min">23°</span></div>
+                  <div class="f-rain-badge"><i data-lucide="droplets"></i> 40% Rain</div>
+                </div>
+                <div class="forecast-day-card">
+                  <div class="f-day-header"><span class="f-day-name">Sat</span><span class="f-date-tag">Day 6</span></div>
+                  <div class="f-icon-box"><i data-lucide="sun"></i></div>
+                  <div class="f-condition-text">Mostly Clear</div>
+                  <div class="f-temp-range"><span class="f-max">33°</span><span class="f-min">24°</span></div>
+                  <div class="f-rain-badge"><i data-lucide="droplets"></i> 15% Rain</div>
+                </div>
+                <div class="forecast-day-card">
+                  <div class="f-day-header"><span class="f-day-name">Sun</span><span class="f-date-tag">Day 7</span></div>
+                  <div class="f-icon-box"><i data-lucide="sun"></i></div>
+                  <div class="f-condition-text">Sunny</div>
+                  <div class="f-temp-range"><span class="f-max">35°</span><span class="f-min">25°</span></div>
+                  <div class="f-rain-badge"><i data-lucide="droplets"></i> 10% Rain</div>
+                </div>
               </div>
             </div>
 
@@ -652,7 +910,34 @@
               <span><i data-lucide="newspaper"></i> Weather News & Bulletins (<span id="news-city-name">New Delhi</span>)</span>
             </div>
             <div id="news-grid-container" class="news-grid">
-              <!-- Dynamically populated news cards -->
+              <div class="news-card">
+                <div>
+                  <div class="news-meta">
+                    <span class="news-tag" style="background: #dc2626">Monsoon Advisory</span>
+                    <span class="news-date"><i data-lucide="calendar" style="width: 13px; height: 13px; vertical-align: middle;"></i> Today</span>
+                  </div>
+                  <h4 class="news-title">IMD Issues Heavy Rainfall Watch Across North & Central India</h4>
+                  <p class="news-summary">Widespread monsoon showers expected to continue over northern plains, boosting seasonal reservoir levels and agricultural crops.</p>
+                </div>
+                <div class="news-publisher-bar">
+                  <i data-lucide="building-2"></i>
+                  <span>Publisher: <strong>India Meteorological Dept (IMD)</strong></span>
+                </div>
+              </div>
+              <div class="news-card">
+                <div>
+                  <div class="news-meta">
+                    <span class="news-tag" style="background: #0284c7">Climate Update</span>
+                    <span class="news-date"><i data-lucide="calendar" style="width: 13px; height: 13px; vertical-align: middle;"></i> Yesterday</span>
+                  </div>
+                  <h4 class="news-title">Monsoon Rainfall Reaches 102% of Normal LPA Across Regions</h4>
+                  <p class="news-summary">Active monsoonal surge brings healthy precipitation levels, mitigating early summer heat anomalies across key river basins.</p>
+                </div>
+                <div class="news-publisher-bar">
+                  <i data-lucide="building-2"></i>
+                  <span>Publisher: <strong>National Weather Bureau</strong></span>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -38,11 +38,23 @@ function getCookie(name) {
 
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize 3D Light Sky & Volumetric Clouds
-  scene3D = new Weather3DScene('canvas-container');
+  try { scene3D = new Weather3DScene('canvas-container'); } catch(e) {}
 
   // Initialize Web Audio Engine & Weather Voice Speaker
-  audioEngine = new WeatherAudioEngine();
-  weatherSpeaker = new WeatherSpeaker();
+  try { audioEngine = new WeatherAudioEngine(); } catch(e) {}
+  try { weatherSpeaker = new WeatherSpeaker(); } catch(e) {}
+
+  // Bind Direct Click Event Listeners to Nav Tabs for guaranteed responsive tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tabId = btn.id || '';
+      const tabName = tabId.replace('tab-btn-', '');
+      if (tabName) {
+        switchNavTab(tabName);
+      }
+    });
+  });
 
   // Render Search History & Weather News Feed
   renderSearchHistory();
@@ -60,30 +72,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Load Initial Weather & Climate Data
-  selectCity(currentCity);
+  // Determine Target Tab for Persistence: First-time vs Page Refresh
+  const hasVisited = localStorage.getItem('weather_app_has_visited');
+  const savedTab = localStorage.getItem('weather_app_active_tab');
+
+  let targetTab = 'intro';
+  if (!hasVisited) {
+    // First time opening website -> land on Introduction page
+    localStorage.setItem('weather_app_has_visited', 'true');
+    targetTab = 'intro';
+  } else if (savedTab && ['intro', 'weather', 'climate', 'feedback'].includes(savedTab)) {
+    // Page refresh / return visit -> restore exact previous tab
+    targetTab = savedTab;
+  } else {
+    targetTab = 'intro';
+  }
+
+  // Switch to target tab immediately so UI displays page right away
+  switchNavTab(targetTab);
 
   // Initialize Network Connectivity Indicator
   initNetworkMonitor();
 
-  // Default to Weather view on page load so all details are visible immediately
-  switchNavTab('weather');
+  // Load Initial Weather & Climate Data asynchronously (autoSwitchTab = false to preserve targetTab)
+  selectCity(currentCity, false).catch(e => console.warn("selectCity error:", e));
 
   // Render Climate Tab Visuals
-  initClimateCharts();
+  try { initClimateCharts(); } catch(e) {}
 });
 
-// TOP NAVIGATION TABS SWITCHER
+// TOP NAVIGATION TABS SWITCHER WITH STORAGE PERSISTENCE
 function switchNavTab(tabName) {
+  if (!tabName) return;
+
   // Update Tab Buttons UI
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   const activeTabBtn = document.getElementById(`tab-btn-${tabName}`);
   if (activeTabBtn) activeTabBtn.classList.add('active');
 
-  // Update View Sections
-  document.querySelectorAll('.tab-view').forEach(view => view.classList.remove('active'));
+  // Update View Sections with clean active class toggling
+  document.querySelectorAll('.tab-view').forEach(view => {
+    view.classList.remove('active');
+    view.removeAttribute('style');
+  });
+
   const activeView = document.getElementById(`view-${tabName}`);
-  if (activeView) activeView.classList.add('active');
+  if (activeView) {
+    activeView.classList.add('active');
+  }
+
+  // Save active tab in localStorage for page refresh persistence
+  try {
+    localStorage.setItem('weather_app_active_tab', tabName);
+  } catch(e) {}
 
   const isWeatherTab = (tabName === 'weather');
 
@@ -98,18 +139,28 @@ function switchNavTab(tabName) {
 
   // Stop active speech and ambient soundscape if user leaves weather tab
   if (!isWeatherTab) {
-    if (weatherSpeaker) weatherSpeaker.stop();
-    if (audioEngine && audioEngine.isPlaying) {
+    if (typeof weatherSpeaker !== 'undefined' && weatherSpeaker) weatherSpeaker.stop();
+    if (typeof audioEngine !== 'undefined' && audioEngine && audioEngine.isPlaying) {
       audioEngine.stop();
       if (audioToggleBtn) audioToggleBtn.classList.remove('active');
     }
     closeAlertModal();
   }
 
-  if (tabName === 'climate') {
+  if (tabName === 'climate' && typeof updateCityClimateProfile === 'function') {
     updateCityClimateProfile(currentCity);
   }
+
+  // Refresh Lucide icons for active view
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    lucide.createIcons();
+  }
 }
+
+// Expose switchNavTab globally on window so inline onclick="switchNavTab('...')" ALWAYS works
+window.switchNavTab = switchNavTab;
+
+
 
 // SEARCH HISTORY MANAGEMENT
 function getSearchHistory() {
@@ -225,7 +276,7 @@ function selectCityByName(cityName) {
 }
 
 // Main City Selection Routine
-async function selectCity(city) {
+async function selectCity(city, autoSwitchTab = true) {
   if (!city) return;
   currentCity = city;
 
@@ -240,12 +291,12 @@ async function selectCity(city) {
       updateSearchClearButton();
     }
 
-    // Fetch live weather data with guaranteed fallback object
+    // Fetch live weather data cleanly without flashing temporary 31°C fallback
     let data;
     try {
       data = await WeatherAPI.fetchCityWeather(city);
     } catch(e) {
-      console.warn("Weather API fetch error, generating fallback data:", e);
+      console.warn("Weather API fetch error, using fallback data:", e);
       data = WeatherAPI.generateFallbackData(city);
     }
 
@@ -258,7 +309,7 @@ async function selectCity(city) {
     // Add to Search History
     addToSearchHistory(data);
 
-    // Update Dashboard Widgets safely
+    // Update Dashboard Widgets cleanly with live API data directly
     try { updateHeroDashboard(data); } catch(e) { console.error("updateHeroDashboard error:", e); }
     try { update7DaySunCycle(data); } catch(e) { console.error("update7DaySunCycle error:", e); }
     try { updateHourlyCards(data.hourly || []); } catch(e) { console.error("updateHourlyCards error:", e); }
@@ -287,8 +338,10 @@ async function selectCity(city) {
       weatherSpeaker.updateWidgetData(data);
     }
 
-    // Automatically switch to Weather View tab to present all weather details
-    switchNavTab('weather');
+    // Automatically switch tab only if autoSwitchTab is true
+    if (autoSwitchTab) {
+      switchNavTab('weather');
+    }
 
     // Update Climate Tab if active
     try { updateCityClimateProfile(city); } catch(e) {}
@@ -306,7 +359,42 @@ async function updateWeatherNow() {
 
   try {
     if (currentCity) {
-      await selectCity(currentCity);
+      // Direct live fetch without temporary fallback flashing
+      let data;
+      try {
+        data = await WeatherAPI.fetchCityWeather(currentCity);
+      } catch(e) {
+        data = WeatherAPI.generateFallbackData(currentCity);
+      }
+      if (!data) data = WeatherAPI.generateFallbackData(currentCity);
+
+      // Force update timestamp to exact current time
+      const nowStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      data.lastUpdated = `Just now (${nowStr})`;
+
+      currentWeatherData = data;
+
+      // Directly update dashboard with updated live data
+      try { updateHeroDashboard(data); } catch(e) {}
+      try { update7DaySunCycle(data); } catch(e) {}
+      try { updateHourlyCards(data.hourly || []); } catch(e) {}
+      try { updateAQIWidget(data.aqi); } catch(e) {}
+      try { updateHourlyChart(data.hourly || []); } catch(e) {}
+      try { update7DayForecast(data.daily || [], data.city); } catch(e) {}
+      try { renderWeatherNewsFeed(data); } catch(e) {}
+
+      if (scene3D && data.category) scene3D.setWeatherCategory(data.category);
+      if (audioEngine && data.category) audioEngine.setSoundType(data.category);
+
+      try {
+        currentAlerts = AlertsSystem.getAlertsForLocation(data);
+        if (currentAlerts && currentAlerts.length > 0) {
+          updateAdvisoryPrecautions(currentAlerts[0]);
+          updateAlertsBanner(currentAlerts[0]);
+        }
+      } catch(e) {}
+
+      if (weatherSpeaker) weatherSpeaker.updateWidgetData(data);
     }
   } catch(e) {
     console.warn("Weather update failed:", e);
@@ -314,7 +402,7 @@ async function updateWeatherNow() {
     setTimeout(() => {
       if (btnIcon) btnIcon.classList.remove('spinning');
       if (btn) btn.disabled = false;
-    }, 500);
+    }, 600);
   }
 }
 
@@ -341,6 +429,23 @@ function updateHeroDashboard(data) {
   if (windEl) windEl.textContent = `${data.windSpeed ?? 12} km/h`;
   if (pressureEl) pressureEl.textContent = `${data.pressure ?? 1010} hPa`;
 
+  // Apply Vibrant Theme Background Gradients to Hero Weather Box
+  const heroCard = document.querySelector('.hero-weather-card');
+  if (heroCard) {
+    heroCard.classList.remove('theme-sunny', 'theme-rainy', 'theme-storm', 'theme-fog', 'theme-heatwave');
+    let themeClass = 'theme-sunny';
+    const temp = data.temp || 30;
+    const cat = data.category || 'cloudy';
+
+    if (temp >= 38) themeClass = 'theme-heatwave';
+    else if (cat === 'storm') themeClass = 'theme-storm';
+    else if (cat === 'rainy') themeClass = 'theme-rainy';
+    else if (cat === 'fog') themeClass = 'theme-fog';
+    else if (cat === 'cloudy') themeClass = 'theme-rainy';
+    
+    heroCard.classList.add(themeClass);
+  }
+
   // Sun & Daylight Cycle Widget Fields
   const sunriseEl = document.getElementById('stat-sunrise');
   const sunsetEl = document.getElementById('stat-sunset');
@@ -355,10 +460,6 @@ function updateHeroDashboard(data) {
   if (nightHoursEl) nightHoursEl.textContent = data.nightHours || "10 hrs 53 mins";
   if (maxTempEl) maxTempEl.textContent = `${data.maxTemp ?? ((data.temp ?? 30) + 3)}°C`;
   if (minTempEl) minTempEl.textContent = `${data.minTemp ?? ((data.temp ?? 30) - 5)}°C`;
-  if (dayHoursEl) dayHoursEl.textContent = data.dayHours || "13 hrs 7 mins";
-  if (nightHoursEl) nightHoursEl.textContent = data.nightHours || "10 hrs 53 mins";
-  if (maxTempEl) maxTempEl.textContent = `${data.maxTemp || data.temp + 3}°C`;
-  if (minTempEl) minTempEl.textContent = `${data.minTemp || data.temp - 5}°C`;
 
   const lastUpdatedEl = document.getElementById('last-updated-text');
   if (lastUpdatedEl) {
@@ -439,14 +540,14 @@ function update7DaySunCycle(data) {
 // Condition Advisory & Precautions Box Updater
 function updateAdvisoryPrecautions(alert) {
   if (!alert) return;
-  document.getElementById('advisory-title').textContent = `${alert.type}: ${alert.title}`;
-  document.getElementById('advisory-desc').textContent = alert.description;
+  document.getElementById('advisory-title').innerHTML = `${alert.type}: <strong>${alert.title}</strong>`;
+  document.getElementById('advisory-desc').innerHTML = alert.description;
 
   const precautionsContainer = document.getElementById('precautions-list');
   if (precautionsContainer && alert.instructions) {
     precautionsContainer.innerHTML = alert.instructions.map(inst => `
       <div class="precaution-item">
-        <i data-lucide="check-circle-2" style="color: var(--accent-gold);"></i>
+        <i data-lucide="shield-check" style="color: var(--accent-cyan);"></i>
         <span>${inst}</span>
       </div>
     `).join('');
@@ -456,51 +557,53 @@ function updateAdvisoryPrecautions(alert) {
   const visualContainer = document.getElementById('visual-precautions-container');
   if (visualContainer) {
     const dosList = alert.dos || [
-      "Drink plenty of water, coconut water, or ORS frequently.",
-      "Wear lightweight, loose-fitting cotton clothing.",
-      "Check daily weather forecasts before travelling outdoors."
+      "<strong class=\"bold-important\">Drink plenty of water, coconut water, or ORS frequently</strong>.",
+      "<strong class=\"bold-important\">Wear lightweight, loose-fitting cotton clothing</strong>.",
+      "<strong class=\"bold-important\">Check daily weather forecasts</strong> before travelling outdoors."
     ];
     const dontsList = alert.donts || [
-      "Do NOT step out in direct sun during peak afternoon hours.",
-      "Do NOT ignore local weather warnings or flood advisories."
+      "<strong class=\"bold-important\">Do NOT step out in direct sun</strong> during peak afternoon hours.",
+      "<strong class=\"bold-important\">Do NOT ignore local weather warnings</strong> or flood advisories."
     ];
     const doImg = alert.doImage || "./images/do_clear.svg";
     const dontImg = alert.dontImage || "./images/dont_clear.svg";
 
     visualContainer.innerHTML = `
       <!-- DO'S COLUMN (GREEN) -->
-      <div class="dos-card">
+      <div class="visual-dos-card">
         <div class="dos-header">
-          <div class="dos-badge"><i data-lucide="check-circle"></i> DO'S (क्या करें)</div>
+          <i data-lucide="check-circle" style="color: #059669;"></i> DO'S (क्या करें - आवश्यक सुरक्षा नियम)
         </div>
         <div class="dos-body">
           <div class="visual-img-box">
             <img src="${doImg}" alt="Do's Weather Guidelines" class="visual-advisory-img">
           </div>
           <ul class="dos-ul">
-            ${dosList.map(item => `<li><i data-lucide="check" class="check-icon"></i> <span>${item}</span></li>`).join('')}
+            ${dosList.map(item => `<li><i data-lucide="check-circle-2" class="check-icon"></i> <span>${item}</span></li>`).join('')}
           </ul>
         </div>
       </div>
 
       <!-- DON'TS COLUMN (RED) -->
-      <div class="donts-card">
+      <div class="visual-donts-card">
         <div class="donts-header">
-          <div class="donts-badge"><i data-lucide="x-circle"></i> DON'TS (क्या न करें)</div>
+          <i data-lucide="alert-triangle" style="color: #dc2626;"></i> DON'TS (क्या न करें - सावधानियां)
         </div>
         <div class="donts-body">
           <div class="visual-img-box">
             <img src="${dontImg}" alt="Don'ts Weather Guidelines" class="visual-advisory-img">
           </div>
           <ul class="donts-ul">
-            ${dontsList.map(item => `<li><i data-lucide="x" class="cross-icon"></i> <span>${item}</span></li>`).join('')}
+            ${dontsList.map(item => `<li><i data-lucide="x-circle" class="cross-icon"></i> <span>${item}</span></li>`).join('')}
           </ul>
         </div>
       </div>
     `;
   }
 
-  lucide.createIcons();
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    lucide.createIcons();
+  }
 }
 
 // Hourly Weather Cards Carousel Updater with Icons
@@ -556,49 +659,61 @@ function updateAQIWidget(aqi) {
 
 // 24-Hour Temperature Chart Updater
 function updateHourlyChart(hourly) {
-  const ctx = document.getElementById('forecastChart').getContext('2d');
-  const labels = hourly.map(h => h.time);
-  const temps = hourly.map(h => h.temp);
-  const pops = hourly.map(h => h.pop);
+  if (!hourly || !Array.isArray(hourly) || hourly.length === 0) return;
+  const canvas = document.getElementById('forecastChart');
+  if (!canvas || typeof Chart === 'undefined') return;
 
-  if (forecastChart) forecastChart.destroy();
+  try {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  forecastChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Temperature (°C)',
-          data: temps,
-          borderColor: '#0284c7',
-          backgroundColor: 'rgba(2, 132, 199, 0.12)',
-          fill: true,
-          tension: 0.4,
-          yAxisID: 'y'
-        },
-        {
-          label: 'Rain Chance (%)',
-          data: pops,
-          borderColor: '#2563eb',
-          borderDash: [4, 4],
-          fill: false,
-          tension: 0.4,
-          yAxisID: 'y1'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } },
-        y: { position: 'left', grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#0284c7' } },
-        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#2563eb' }, min: 0, max: 100 }
-      }
+    const labels = hourly.map(h => h.time);
+    const temps = hourly.map(h => h.temp);
+    const pops = hourly.map(h => h.pop);
+
+    if (forecastChart) {
+      try { forecastChart.destroy(); } catch(e) {}
     }
-  });
+
+    forecastChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Temperature (°C)',
+            data: temps,
+            borderColor: '#0284c7',
+            backgroundColor: 'rgba(2, 132, 199, 0.12)',
+            fill: true,
+            tension: 0.4,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Rain Chance (%)',
+            data: pops,
+            borderColor: '#2563eb',
+            borderDash: [4, 4],
+            fill: false,
+            tension: 0.4,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+          y: { position: 'left', grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#0284c7' } },
+          y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#2563eb' }, min: 0, max: 100 }
+        }
+      }
+    });
+  } catch(e) {
+    console.warn("forecastChart error:", e);
+  }
 }
 
 // 7-Day Forecast Updater
@@ -672,106 +787,144 @@ function renderWeatherNewsFeed(cityData = null) {
 
 // INITIALIZE CLIMATE TAB CHARTS & CITY CLIMATE PROFILES
 function initClimateCharts() {
+  if (typeof Chart === 'undefined' || typeof INDIA_CLIMATE_TRENDS === 'undefined') return;
+
   // 1. India Temperature Anomaly Trend (2018-2026)
-  const ctxTrend = document.getElementById('climateTrendChart').getContext('2d');
-  climateTrendChart = new Chart(ctxTrend, {
-    type: 'line',
-    data: {
-      labels: INDIA_CLIMATE_TRENDS.years,
-      datasets: [{
-        label: 'Temp Anomaly (°C above baseline)',
-        data: INDIA_CLIMATE_TRENDS.tempAnomaly,
-        borderColor: '#dc2626',
-        backgroundColor: 'rgba(220, 38, 38, 0.15)',
-        fill: true,
-        tension: 0.4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: 'rgba(0,0,0,0.05)' } },
-        y: { grid: { color: 'rgba(0,0,0,0.05)' } }
+  try {
+    const canvasTrend = document.getElementById('climateTrendChart');
+    if (canvasTrend) {
+      const ctxTrend = canvasTrend.getContext('2d');
+      if (ctxTrend) {
+        if (climateTrendChart) { try { climateTrendChart.destroy(); } catch(e) {} }
+        climateTrendChart = new Chart(ctxTrend, {
+          type: 'line',
+          data: {
+            labels: INDIA_CLIMATE_TRENDS.years,
+            datasets: [{
+              label: 'Temp Anomaly (°C above baseline)',
+              data: INDIA_CLIMATE_TRENDS.tempAnomaly,
+              borderColor: '#dc2626',
+              backgroundColor: 'rgba(220, 38, 38, 0.15)',
+              fill: true,
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(0,0,0,0.05)' } },
+              y: { grid: { color: 'rgba(0,0,0,0.05)' } }
+            }
+          }
+        });
       }
     }
-  });
+  } catch(e) {
+    console.warn("climateTrendChart error:", e);
+  }
 
   // 2. Monsoon Rainfall Chart (% LPA)
-  const ctxMonsoon = document.getElementById('monsoonRainChart').getContext('2d');
-  monsoonRainChart = new Chart(ctxMonsoon, {
-    type: 'bar',
-    data: {
-      labels: INDIA_CLIMATE_TRENDS.years,
-      datasets: [{
-        label: 'Monsoon Rainfall (% LPA)',
-        data: INDIA_CLIMATE_TRENDS.monsoonRainfall,
-        backgroundColor: '#0284c7',
-        borderRadius: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false } },
-        y: { grid: { color: 'rgba(0,0,0,0.05)' }, min: 80, max: 120 }
+  try {
+    const canvasMonsoon = document.getElementById('monsoonRainChart');
+    if (canvasMonsoon) {
+      const ctxMonsoon = canvasMonsoon.getContext('2d');
+      if (ctxMonsoon) {
+        if (monsoonRainChart) { try { monsoonRainChart.destroy(); } catch(e) {} }
+        monsoonRainChart = new Chart(ctxMonsoon, {
+          type: 'bar',
+          data: {
+            labels: INDIA_CLIMATE_TRENDS.years,
+            datasets: [{
+              label: 'Monsoon Rainfall (% LPA)',
+              data: INDIA_CLIMATE_TRENDS.monsoonRainfall,
+              backgroundColor: '#0284c7',
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { display: false } },
+              y: { grid: { color: 'rgba(0,0,0,0.05)' }, min: 80, max: 120 }
+            }
+          }
+        });
       }
     }
-  });
+  } catch(e) {
+    console.warn("monsoonRainChart error:", e);
+  }
 }
 
 // Update Searched City Climate Profile Deep-Dive
 function updateCityClimateProfile(city) {
-  const profile = CITY_CLIMATE_PROFILES[city.name] || DEFAULT_CLIMATE_PROFILE;
+  if (!city) return;
+  const profile = (typeof CITY_CLIMATE_PROFILES !== 'undefined' && CITY_CLIMATE_PROFILES[city.name])
+    ? CITY_CLIMATE_PROFILES[city.name]
+    : (typeof DEFAULT_CLIMATE_PROFILE !== 'undefined' ? DEFAULT_CLIMATE_PROFILE : { type: "Semi-Arid Monsoonal", annualRainfall: "790 mm", avgSummerMax: "41.5 °C", vulnerability: "Heatwave & Smog", monthlyTemps: [15,18,24,30,34,34,31,30,29,26,21,16], monthlyRain: [15,20,15,10,25,75,210,230,120,25,10,10] });
 
   const titleEl = document.getElementById('climate-city-title');
   if (titleEl) titleEl.textContent = `${city.name}, ${city.state}`;
 
-  document.getElementById('c-zone-type').textContent = profile.type;
-  document.getElementById('c-annual-rain').textContent = profile.annualRainfall;
-  document.getElementById('c-summer-max').textContent = profile.avgSummerMax;
-  document.getElementById('c-vulnerability').textContent = profile.vulnerability;
+  const zoneEl = document.getElementById('c-zone-type');
+  if (zoneEl) zoneEl.textContent = profile.type;
 
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const ctxMonthly = document.getElementById('cityMonthlyChart').getContext('2d');
+  const rainEl = document.getElementById('c-annual-rain');
+  if (rainEl) rainEl.textContent = profile.annualRainfall;
 
-  if (cityMonthlyChart) cityMonthlyChart.destroy();
+  const maxEl = document.getElementById('c-summer-max');
+  if (maxEl) maxEl.textContent = profile.avgSummerMax;
 
-  cityMonthlyChart = new Chart(ctxMonthly, {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: [
-        {
-          type: 'line',
-          label: 'Avg Temp (°C)',
-          data: profile.monthlyTemps,
-          borderColor: '#d97706',
-          yAxisID: 'y'
-        },
-        {
-          type: 'bar',
-          label: 'Avg Rainfall (mm)',
-          data: profile.monthlyRain,
-          backgroundColor: 'rgba(2, 132, 199, 0.7)',
-          borderRadius: 4,
-          yAxisID: 'y1'
+  const vulEl = document.getElementById('c-vulnerability');
+  if (vulEl) vulEl.textContent = profile.vulnerability;
+
+  const canvas = document.getElementById('cityMonthlyChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  try {
+    const ctxMonthly = canvas.getContext('2d');
+    if (!ctxMonthly) return;
+
+    if (cityMonthlyChart) { try { cityMonthlyChart.destroy(); } catch(e) {} }
+
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    cityMonthlyChart = new Chart(ctxMonthly, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [
+          {
+            type: 'line',
+            label: 'Avg Temp (°C)',
+            data: profile.monthlyTemps,
+            borderColor: '#d97706',
+            yAxisID: 'y'
+          },
+          {
+            type: 'bar',
+            label: 'Rainfall (mm)',
+            data: profile.monthlyRain,
+            backgroundColor: 'rgba(2, 132, 199, 0.7)',
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { type: 'linear', display: true, position: 'left' },
+          y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
         }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { grid: { display: false } },
-        y: { position: 'left', grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#d97706' } },
-        y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#0284c7' } }
       }
-    }
-  });
+    });
+  } catch(e) {
+    console.warn("cityMonthlyChart error:", e);
+  }
 }
 
 // FEEDBACK FORM & 500-CHARACTER LIMIT HANDLER
@@ -810,21 +963,27 @@ function resetFeedbackForm() {
 function updateAlertsBanner(alert) {
   if (!alert) return;
   document.getElementById('alert-type-text').textContent = alert.type;
-  document.getElementById('alert-summary-text').textContent = `${alert.title} — ${alert.description}`;
+  document.getElementById('alert-summary-text').innerHTML = `<strong>${alert.title}</strong> — ${alert.description}`;
 }
 
 function openAlertModal() {
-  const alert = currentAlerts[0];
+  // Only open safety advisory modal if on the Weather page
+  const weatherView = document.getElementById('view-weather');
+  if (!weatherView || !weatherView.classList.contains('active')) return;
+
+  const alert = (currentAlerts && currentAlerts.length > 0) ? currentAlerts[0] : null;
   if (!alert) return;
 
   document.getElementById('modal-alert-title').innerHTML = `<i data-lucide="alert-triangle"></i> ${alert.type}`;
-  document.getElementById('modal-alert-desc').textContent = `${alert.title}: ${alert.description}`;
+  document.getElementById('modal-alert-desc').innerHTML = `<strong style="font-size: 1.05rem; color: #1e293b;">${alert.title}</strong><br><span style="margin-top: 0.3rem; display: inline-block;">${alert.description}</span>`;
   
   const listEl = document.getElementById('modal-alert-list');
-  listEl.innerHTML = alert.instructions.map(inst => `<li>${inst}</li>`).join('');
+  listEl.innerHTML = (alert.instructions || []).map(inst => `<li style="margin-bottom: 0.4rem;">${inst}</li>`).join('');
 
   document.getElementById('alert-modal').classList.add('active');
-  lucide.createIcons();
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    lucide.createIcons();
+  }
 }
 
 function closeAlertModal() {
@@ -973,7 +1132,16 @@ function setIntroLanguage(lang) {
     document.querySelectorAll('.text-hi').forEach(el => el.classList.add('hidden'));
 
     document.querySelectorAll('[data-en]').forEach(el => {
-      el.textContent = el.getAttribute('data-en');
+      const val = el.getAttribute('data-en');
+      if (val) {
+        const icon = el.querySelector('i');
+        if (icon) {
+          const iconHTML = icon.outerHTML;
+          el.innerHTML = `${iconHTML} ${val}`;
+        } else {
+          el.textContent = val;
+        }
+      }
     });
   } else {
     if (hiBtn) hiBtn.classList.add('active');
@@ -983,10 +1151,25 @@ function setIntroLanguage(lang) {
     document.querySelectorAll('.text-en').forEach(el => el.classList.add('hidden'));
 
     document.querySelectorAll('[data-hi]').forEach(el => {
-      el.textContent = el.getAttribute('data-hi');
+      const val = el.getAttribute('data-hi');
+      if (val) {
+        const icon = el.querySelector('i');
+        if (icon) {
+          const iconHTML = icon.outerHTML;
+          el.innerHTML = `${iconHTML} ${val}`;
+        } else {
+          el.textContent = val;
+        }
+      }
     });
   }
+
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    lucide.createIcons();
+  }
 }
+window.setIntroLanguage = setIntroLanguage;
+
 
 // HINDI WEATHER SHAYARI & QUOTES SYSTEM (FOOTER)
 const HINDI_WEATHER_SHAYARIS = [
