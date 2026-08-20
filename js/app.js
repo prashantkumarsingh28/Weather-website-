@@ -270,9 +270,22 @@ function updateSearchClearButton() {
   }
 }
 
-function selectCityByName(cityName) {
+async function selectCityByName(cityName) {
+  if (!cityName) return;
   const city = INDIAN_CITIES.find(c => c.name.toLowerCase() === cityName.toLowerCase());
-  if (city) selectCity(city);
+  if (city) {
+    selectCity(city);
+    return;
+  }
+  // If not found in static list, try live Geocoding API
+  try {
+    const geoResults = await WeatherAPI.searchCityGeocoding(cityName);
+    if (geoResults && geoResults.length > 0) {
+      selectCity(geoResults[0]);
+    }
+  } catch(e) {
+    console.warn("Geocoding lookup error:", e);
+  }
 }
 
 // Main City Selection Routine
@@ -419,25 +432,32 @@ function updateHeroDashboard(data) {
   const windEl = document.getElementById('stat-wind');
   const pressureEl = document.getElementById('stat-pressure');
 
+  const tempVal = (typeof data.temp === 'number' && !isNaN(data.temp)) ? data.temp : 31;
+  const feelsVal = (typeof data.feelsLike === 'number' && !isNaN(data.feelsLike)) ? data.feelsLike : tempVal + 2;
+
   if (cityNameEl) cityNameEl.textContent = data.city || "New Delhi";
   if (stateNameEl) stateNameEl.textContent = `${data.state || "Delhi NCR"} • India`;
-  if (tempEl) tempEl.textContent = `${data.temp ?? 32}°C`;
+  if (tempEl) tempEl.textContent = `${tempVal}°C`;
   if (conditionEl) conditionEl.textContent = data.condition || "Clear Sky";
-  if (feelsLikeEl) feelsLikeEl.textContent = `${data.feelsLike ?? data.temp ?? 34}°C`;
+  if (feelsLikeEl) feelsLikeEl.textContent = `${feelsVal}°C`;
 
-  if (humidityEl) humidityEl.textContent = `${data.humidity ?? 70}%`;
-  if (windEl) windEl.textContent = `${data.windSpeed ?? 12} km/h`;
-  if (pressureEl) pressureEl.textContent = `${data.pressure ?? 1010} hPa`;
+  const humidityVal = (typeof data.humidity === 'number' && !isNaN(data.humidity)) ? data.humidity : 72;
+  const windVal = (typeof data.windSpeed === 'number' && !isNaN(data.windSpeed)) ? data.windSpeed : 14;
+  const windCompass = data.windDirCompass ? ` (${data.windDirCompass})` : '';
+  const pressureVal = (typeof data.pressure === 'number' && !isNaN(data.pressure)) ? data.pressure : 1010;
+
+  if (humidityEl) humidityEl.textContent = `${humidityVal}%`;
+  if (windEl) windEl.textContent = `${windVal} km/h${windCompass}`;
+  if (pressureEl) pressureEl.textContent = `${pressureVal} hPa`;
 
   // Apply Vibrant Theme Background Gradients to Hero Weather Box
   const heroCard = document.querySelector('.hero-weather-card');
   if (heroCard) {
     heroCard.classList.remove('theme-sunny', 'theme-rainy', 'theme-storm', 'theme-fog', 'theme-heatwave');
     let themeClass = 'theme-sunny';
-    const temp = data.temp || 30;
     const cat = data.category || 'cloudy';
 
-    if (temp >= 38) themeClass = 'theme-heatwave';
+    if (tempVal >= 38) themeClass = 'theme-heatwave';
     else if (cat === 'storm') themeClass = 'theme-storm';
     else if (cat === 'rainy') themeClass = 'theme-rainy';
     else if (cat === 'fog') themeClass = 'theme-fog';
@@ -454,12 +474,15 @@ function updateHeroDashboard(data) {
   const maxTempEl = document.getElementById('stat-max-temp');
   const minTempEl = document.getElementById('stat-min-temp');
 
+  const maxVal = (typeof data.maxTemp === 'number' && !isNaN(data.maxTemp)) ? data.maxTemp : tempVal + 3;
+  const minVal = (typeof data.minTemp === 'number' && !isNaN(data.minTemp)) ? data.minTemp : tempVal - 5;
+
   if (sunriseEl) sunriseEl.textContent = data.sunrise || "06:05 AM";
   if (sunsetEl) sunsetEl.textContent = data.sunset || "07:12 PM";
   if (dayHoursEl) dayHoursEl.textContent = data.dayHours || "13 hrs 7 mins";
   if (nightHoursEl) nightHoursEl.textContent = data.nightHours || "10 hrs 53 mins";
-  if (maxTempEl) maxTempEl.textContent = `${data.maxTemp ?? ((data.temp ?? 30) + 3)}°C`;
-  if (minTempEl) minTempEl.textContent = `${data.minTemp ?? ((data.temp ?? 30) - 5)}°C`;
+  if (maxTempEl) maxTempEl.textContent = `${maxVal}°C`;
+  if (minTempEl) minTempEl.textContent = `${minVal}°C`;
 
   const lastUpdatedEl = document.getElementById('last-updated-text');
   if (lastUpdatedEl) {
@@ -472,29 +495,115 @@ function updateHeroDashboard(data) {
   const rainAlertCard = document.getElementById('rain-intensity-alert');
   const rInfo = data.rainInfo || (typeof WeatherAPI !== 'undefined' ? WeatherAPI.getRainIntensityInfo(data.precipitation || 0, data.condition) : null);
 
-  if (rainAlertCard) {
-    if (rInfo && rInfo.isRaining) {
-      rainAlertCard.classList.remove('hidden');
-      const badgeEl = document.getElementById('rain-intensity-badge');
-      const titleEl = document.getElementById('rain-alert-title');
-      const amountEl = document.getElementById('rain-amount-val');
-      const chanceEl = document.getElementById('rain-chance-val');
-      
-      if (badgeEl) {
-        badgeEl.textContent = rInfo.intensityEn;
-        badgeEl.style.backgroundColor = rInfo.color;
+  if (rainAlertCard && rInfo) {
+    rainAlertCard.classList.remove('hidden');
+    const badgeEl = document.getElementById('rain-intensity-badge');
+    const titleEl = document.getElementById('rain-alert-title');
+    const amountEl = document.getElementById('rain-amount-val');
+    const speedEl = document.getElementById('rain-speed-val');
+    const chanceEl = document.getElementById('rain-chance-val');
+    const timeEl = document.getElementById('rain-time-val');
+    const timeTextEl = document.getElementById('rain-time-text');
+    const liveDotEl = document.getElementById('rain-live-dot');
+
+    const isRaining = rInfo.isRaining;
+    const hasDailyRain = (rInfo.amountMm > 0);
+
+    let rainTimeStr = "";
+    let dotColor = "#10b981"; // green
+    let isPulsing = false;
+
+    if (isRaining) {
+      // 1. Rain is currently active
+      let clearTime = null;
+      if (data.hourly && Array.isArray(data.hourly)) {
+        const nextClear = data.hourly.find(h => h && (h.pop < 25) && (!h.condition || !h.condition.toLowerCase().includes('rain')));
+        if (nextClear) clearTime = nextClear.time;
       }
-      if (titleEl) {
-        titleEl.textContent = `${rInfo.intensityEn} (${data.city})`;
+      if (clearTime) {
+        rainTimeStr = `Currently Raining (Expected to clear by ${clearTime})`;
+      } else {
+        rainTimeStr = `Currently Raining (Live Active Rain)`;
       }
-      if (amountEl) {
-        amountEl.textContent = rInfo.amountText;
+      dotColor = "#ef4444"; // alert red
+      isPulsing = true;
+    } else if (hasDailyRain) {
+      // 2. Rain has stopped! (Daily rain recorded or recent rain ended)
+      let lastRainTime = null;
+      if (data.hourly && Array.isArray(data.hourly)) {
+        const pastRain = data.hourly.filter(h => h && (h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain')))).pop();
+        if (pastRain) lastRainTime = pastRain.time;
       }
-      if (chanceEl) {
-        chanceEl.textContent = `${Math.min(100, Math.max(70, Math.round((data.precipitation || 5) * 12)))}%`;
+      if (lastRainTime) {
+        rainTimeStr = `Rain Stopped (Cleared around ${lastRainTime})`;
+      } else {
+        rainTimeStr = `Rain Stopped (No active rain currently)`;
+      }
+      dotColor = "#f59e0b"; // amber / stopped
+      isPulsing = false;
+    } else if (data.hourly && Array.isArray(data.hourly)) {
+      // 3. Rain expected later today
+      const upcomingRain = data.hourly.find(h => h && (h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain'))));
+      if (upcomingRain) {
+        rainTimeStr = `Rain Expected around ${upcomingRain.time} (${upcomingRain.pop || 60}% Chance)`;
+        dotColor = "#3b82f6"; // blue
+      } else {
+        rainTimeStr = `No Rain Expected Today (Sky Clear)`;
+        dotColor = "#10b981"; // green
       }
     } else {
-      rainAlertCard.classList.add('hidden');
+      // 4. Default no rain
+      rainTimeStr = `No Active Rain Expected Currently`;
+      dotColor = "#10b981";
+    }
+
+    if (badgeEl) {
+      if (isRaining) {
+        badgeEl.textContent = rInfo.intensityEn || 'Rain Alert';
+        badgeEl.style.backgroundColor = rInfo.color || '#dc2626';
+      } else if (hasDailyRain) {
+        badgeEl.textContent = 'Rain Stopped';
+        badgeEl.style.backgroundColor = '#f59e0b';
+      } else {
+        badgeEl.textContent = 'No Active Rain';
+        badgeEl.style.backgroundColor = '#0284c7';
+      }
+    }
+
+    if (titleEl) {
+      if (isRaining) {
+        titleEl.textContent = `${rInfo.intensityEn || 'Rain Alert'} Active (${data.city})`;
+      } else if (hasDailyRain) {
+        titleEl.textContent = `Rain Stopped - Cleared in ${data.city}`;
+      } else {
+        titleEl.textContent = `Live Rain & Precipitation Status (${data.city})`;
+      }
+    }
+
+    if (amountEl) {
+      amountEl.textContent = rInfo.amountText || "0.0 mm (0.00 cm)";
+    }
+    if (speedEl) {
+      speedEl.textContent = rInfo.speedText || "0.0 mm/h";
+    }
+    if (chanceEl) {
+      const popVal = (data.hourly && data.hourly.length > 0 && typeof data.hourly[0].pop === 'number') ? data.hourly[0].pop : (isRaining ? 85 : (hasDailyRain ? 15 : 5));
+      chanceEl.textContent = `${popVal}%`;
+    }
+
+    if (timeTextEl) {
+      timeTextEl.textContent = rainTimeStr;
+    } else if (timeEl) {
+      timeEl.textContent = rainTimeStr;
+    }
+
+    if (liveDotEl) {
+      liveDotEl.style.backgroundColor = dotColor;
+      if (isPulsing) {
+        liveDotEl.classList.add('pulsing');
+      } else {
+        liveDotEl.classList.remove('pulsing');
+      }
     }
   }
 
@@ -627,13 +736,21 @@ function updateHourlyCards(hourly) {
 
 // AQI Widget Updater
 function updateAQIWidget(aqi) {
-  if (!aqi) return;
   const valEl = document.getElementById('aqi-val');
   const labelEl = document.getElementById('aqi-label');
   const dotEl = document.getElementById('aqi-indicator-dot');
 
-  const aqiVal = aqi.value ?? 85;
-  const statusObj = (typeof aqi.status === 'object' && aqi.status !== null) ? aqi.status : { label: (aqi.status || 'Moderate'), color: '#f59e0b' };
+  const defaultVal = (currentCity && (currentCity.name === "New Delhi" || currentCity.name === "Ghaziabad" || currentCity.name === "Kanpur" || currentCity.name === "Patna")) ? 220 : 85;
+  const aqiVal = (aqi && typeof aqi.value === 'number' && !isNaN(aqi.value) && aqi.value > 0) ? aqi.value : defaultVal;
+
+  let statusObj;
+  if (aqi && aqi.status && typeof aqi.status === 'object' && aqi.status.label) {
+    statusObj = aqi.status;
+  } else if (typeof WeatherAPI !== 'undefined' && typeof WeatherAPI.getAqiStatus === 'function') {
+    statusObj = WeatherAPI.getAqiStatus(aqiVal);
+  } else {
+    statusObj = { label: aqiVal > 200 ? "Poor" : (aqiVal > 100 ? "Moderate" : "Satisfactory"), color: aqiVal > 200 ? "#f97316" : "#f59e0b" };
+  }
 
   if (valEl) valEl.textContent = aqiVal;
   if (labelEl) {
@@ -651,10 +768,15 @@ function updateAQIWidget(aqi) {
   const no2El = document.getElementById('aqi-no2');
   const o3El = document.getElementById('aqi-o3');
 
-  if (pm25El) pm25El.textContent = `${aqi.pm25 ?? 35} µg/m³`;
-  if (pm10El) pm10El.textContent = `${aqi.pm10 ?? 65} µg/m³`;
-  if (no2El) no2El.textContent = `${aqi.no2 ?? 20} ppb`;
-  if (o3El) o3El.textContent = `${aqi.o3 ?? 28} ppb`;
+  const pm25 = (aqi && typeof aqi.pm25 === 'number' && !isNaN(aqi.pm25)) ? aqi.pm25 : (aqiVal > 200 ? 75 : 35);
+  const pm10 = (aqi && typeof aqi.pm10 === 'number' && !isNaN(aqi.pm10)) ? aqi.pm10 : (aqiVal > 200 ? 140 : 65);
+  const no2 = (aqi && typeof aqi.no2 === 'number' && !isNaN(aqi.no2)) ? aqi.no2 : 22;
+  const o3 = (aqi && typeof aqi.o3 === 'number' && !isNaN(aqi.o3)) ? aqi.o3 : 28;
+
+  if (pm25El) pm25El.textContent = `${pm25} µg/m³`;
+  if (pm10El) pm10El.textContent = `${pm10} µg/m³`;
+  if (no2El) no2El.textContent = `${no2} ppb`;
+  if (o3El) o3El.textContent = `${o3} ppb`;
 }
 
 // 24-Hour Temperature Chart Updater
@@ -990,7 +1112,9 @@ function closeAlertModal() {
   document.getElementById('alert-modal').classList.remove('active');
 }
 
-// Optimized Instant Search Engine
+// Optimized Instant Search Engine with Live Geocoding API & Enter Key Support
+let currentSearchResultsMap = new Map();
+
 function setupSearchEngine() {
   const input = document.getElementById('city-search-input');
   const results = document.getElementById('search-results');
@@ -1005,44 +1129,91 @@ function setupSearchEngine() {
     regionLower: c.region.toLowerCase()
   }));
 
-  input.addEventListener('input', (e) => {
+  let searchTimeout = null;
+
+  const performSearch = async (query) => {
     updateSearchClearButton();
-    const query = e.target.value.toLowerCase().trim();
-    if (query.length < 1) {
+    const cleanQuery = query.toLowerCase().trim();
+    if (cleanQuery.length < 1) {
       results.classList.remove('active');
       return;
     }
 
-    // High priority: prefix match on city name, then state/region match
+    // 1. Local index matches
     const startsWithMatches = [];
     const includesMatches = [];
 
     for (let i = 0; i < searchIndex.length; i++) {
       const item = searchIndex[i];
-      if (item.nameLower.startsWith(query)) {
+      if (item.nameLower.startsWith(cleanQuery)) {
         startsWithMatches.push(item.city);
-      } else if (item.nameLower.includes(query) || item.stateLower.includes(query) || item.regionLower.includes(query)) {
+      } else if (item.nameLower.includes(cleanQuery) || item.stateLower.includes(cleanQuery) || item.regionLower.includes(cleanQuery)) {
         includesMatches.push(item.city);
       }
-      if (startsWithMatches.length + includesMatches.length >= 10) break;
+      if (startsWithMatches.length + includesMatches.length >= 8) break;
     }
 
-    const matches = [...startsWithMatches, ...includesMatches].slice(0, 8);
+    let combinedMatches = [...startsWithMatches, ...includesMatches].slice(0, 8);
+    currentSearchResultsMap.clear();
 
-    if (matches.length > 0) {
-      results.innerHTML = matches.map(c => `
-        <div class="result-item" onclick="selectCityFromSearch('${c.name}')">
+    combinedMatches.forEach(c => {
+      currentSearchResultsMap.set(c.name.toLowerCase(), c);
+    });
+
+    // 2. Fetch Live Geocoding API if query length >= 2
+    if (cleanQuery.length >= 2) {
+      try {
+        const geoResults = await WeatherAPI.searchCityGeocoding(cleanQuery);
+        if (geoResults && geoResults.length > 0) {
+          geoResults.forEach(g => {
+            if (!currentSearchResultsMap.has(g.name.toLowerCase())) {
+              currentSearchResultsMap.set(g.name.toLowerCase(), g);
+              combinedMatches.push(g);
+            }
+          });
+        }
+      } catch(e) {}
+    }
+
+    combinedMatches = combinedMatches.slice(0, 8);
+
+    if (combinedMatches.length > 0) {
+      results.innerHTML = combinedMatches.map(c => `
+        <div class="result-item" onclick="selectCityFromObj('${encodeURIComponent(JSON.stringify(c))}')">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <i data-lucide="map-pin" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
             <span class="city-name" style="font-weight: 600;">${c.name}</span>
           </div>
-          <span class="state-tag" style="font-size: 0.75rem; color: var(--text-muted);">${c.state}</span>
+          <span class="state-tag" style="font-size: 0.75rem; color: var(--text-muted);">${c.state || c.country || ''}</span>
         </div>
       `).join('');
       results.classList.add('active');
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     } else {
       results.classList.remove('active');
+    }
+  };
+
+  input.addEventListener('input', (e) => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => performSearch(e.target.value), 180);
+  });
+
+  input.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = input.value.trim();
+      if (!val) return;
+
+      results.classList.remove('active');
+
+      // Check if top result exists in map
+      const topResult = Array.from(currentSearchResultsMap.values())[0];
+      if (topResult) {
+        selectCity(topResult);
+      } else {
+        await selectCityByName(val);
+      }
     }
   });
 
@@ -1051,6 +1222,36 @@ function setupSearchEngine() {
       results.classList.remove('active');
     }
   });
+}
+
+async function triggerSearchNow() {
+  const input = document.getElementById('city-search-input');
+  const results = document.getElementById('search-results');
+  if (results) results.classList.remove('active');
+  if (input && input.value.trim()) {
+    const val = input.value.trim();
+    const topResult = Array.from(currentSearchResultsMap.values())[0];
+    if (topResult && topResult.name.toLowerCase() === val.toLowerCase()) {
+      selectCity(topResult);
+    } else {
+      await selectCityByName(val);
+    }
+  }
+}
+window.triggerSearchNow = triggerSearchNow;
+
+function selectCityFromObj(encodedObj) {
+  try {
+    const city = JSON.parse(decodeURIComponent(encodedObj));
+    selectCity(city);
+    const searchInput = document.getElementById('city-search-input');
+    if (searchInput) {
+      searchInput.value = city.name;
+      updateSearchClearButton();
+    }
+  } catch(e) {}
+  const results = document.getElementById('search-results');
+  if (results) results.classList.remove('active');
 }
 
 function selectCityFromSearch(name) {
@@ -1083,16 +1284,51 @@ function toggleAudioSoundscape() {
 }
 
 function toggleWeatherSpeaker() {
-  if (weatherSpeaker && currentWeatherData) {
-    weatherSpeaker.toggle(currentWeatherData);
+  if (!weatherSpeaker) {
+    try {
+      weatherSpeaker = new WeatherSpeaker();
+    } catch(e) {
+      console.error("WeatherSpeaker initialization error:", e);
+    }
+  }
+
+  if (weatherSpeaker) {
+    const data = currentWeatherData || weatherSpeaker.currentData || (typeof WeatherAPI !== 'undefined' ? WeatherAPI.generateFallbackData(currentCity || { name: "New Delhi", state: "Delhi NCR" }) : null);
+
+    if (weatherSpeaker.isSpeaking) {
+      weatherSpeaker.stop();
+    } else if (data) {
+      weatherSpeaker.speak(data);
+    }
   }
 }
 
 function setSpeakerLanguage(lang) {
+  if (!weatherSpeaker) {
+    try {
+      weatherSpeaker = new WeatherSpeaker();
+    } catch(e) {}
+  }
   if (weatherSpeaker) {
     weatherSpeaker.setLanguage(lang);
+    const data = currentWeatherData || weatherSpeaker.currentData;
+    if (data) {
+      weatherSpeaker.updateWidgetData(data);
+    }
   }
 }
+
+function changeSpeakerVoice(voiceURI) {
+  if (!weatherSpeaker) {
+    try {
+      weatherSpeaker = new WeatherSpeaker();
+    } catch(e) {}
+  }
+  if (weatherSpeaker) {
+    weatherSpeaker.setSelectedVoice(voiceURI);
+  }
+}
+window.changeSpeakerVoice = changeSpeakerVoice;
 
 function detectUserLocation() {
   if (navigator.geolocation) {

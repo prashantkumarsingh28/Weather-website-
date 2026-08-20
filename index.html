@@ -436,7 +436,9 @@
           <!-- Search Bar Box -->
           <div class="glass-card search-card">
             <div class="search-input-wrap">
-              <i data-lucide="search" class="search-left-icon"></i>
+              <button class="search-left-btn" title="Search City Weather" onclick="triggerSearchNow()" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;">
+                <i data-lucide="search" class="search-left-icon"></i>
+              </button>
               <input type="text" id="city-search-input" class="search-input" placeholder="Search 110+ Indian cities, districts..." autocomplete="off">
               <div class="search-inside-actions">
                 <button id="clear-search-btn" class="clear-search-btn hidden" title="Clear Search Input" onclick="clearCitySearch()">
@@ -518,17 +520,19 @@
             </div>
 
             <!-- Live Rain Intensity & Precipitation Alert Bar -->
-            <div id="rain-intensity-alert" class="rain-intensity-alert-card hidden">
+            <div id="rain-intensity-alert" class="rain-intensity-alert-card">
               <div class="rain-alert-header">
                 <i data-lucide="cloud-rain-wind" id="rain-alert-icon"></i>
                 <div>
-                  <span class="rain-alert-badge" id="rain-intensity-badge">Heavy Rain Alert</span>
-                  <div class="rain-alert-title" id="rain-alert-title">Active Monsoonal Downpour</div>
+                  <span class="rain-alert-badge" id="rain-intensity-badge">Rainfall Metrics</span>
+                  <div class="rain-alert-title" id="rain-alert-title">Live Rain & Precipitation Status</div>
                 </div>
               </div>
               <div class="rain-alert-meta">
-                <div class="r-meta-item">Precipitation Volume: <strong id="rain-amount-val">14.5 mm</strong></div>
+                <div class="r-meta-item">Rainfall Amount: <strong id="rain-amount-val">14.5 mm (1.45 cm)</strong></div>
+                <div class="r-meta-item">Rain Speed: <strong id="rain-speed-val">4.5 mm/h</strong></div>
                 <div class="r-meta-item">Rain Probability: <strong id="rain-chance-val">85%</strong></div>
+                <div class="r-meta-item">Rain Time: <strong id="rain-time-val" class="rain-time-live"><span class="rain-live-dot" id="rain-live-dot"></span><span id="rain-time-text">Currently Raining</span></strong></div>
               </div>
             </div>
 
@@ -612,18 +616,21 @@
                 </div>
                 <div>
                   <h3 class="speaker-title">Weather Voice Speaker & Narration</h3>
-                  <p class="speaker-subtitle">Live voice updates for Temperature, Wind Speed, AQI & Rain timings</p>
+                  <p class="speaker-subtitle">Live voice updates for Temperature, Wind Speed, AQI, Rain Time, Rain Speed & Rain Amount</p>
                 </div>
               </div>
               
-              <!-- Language Selector Switcher -->
-              <div class="lang-selector-group">
+              <!-- Language & Voice Selector Group -->
+              <div class="lang-selector-group" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <button id="speaker-lang-en" class="lang-btn active" onclick="setSpeakerLanguage('en')">
                   🇬🇧 English
                 </button>
                 <button id="speaker-lang-hi" class="lang-btn" onclick="setSpeakerLanguage('hi')">
                   🇮🇳 हिंदी (Hindi)
                 </button>
+                <select id="speaker-voice-select" class="speaker-voice-select" title="Select Voice" onchange="changeSpeakerVoice(this.value)" style="padding: 0.35rem 0.65rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.25); background: rgba(15, 23, 42, 0.45); color: #f8fafc; font-size: 0.78rem; cursor: pointer; outline: none;">
+                  <option value="auto">✨ Perfect Auto Voice</option>
+                </select>
               </div>
             </div>
 
@@ -633,28 +640,42 @@
                 <i data-lucide="thermometer"></i>
                 <div>
                   <span class="chip-label">Temperature</span>
-                  <strong id="speaker-chip-temp">--°C</strong>
+                  <strong id="speaker-chip-temp">32°C</strong>
                 </div>
               </div>
               <div class="highlight-chip">
                 <i data-lucide="wind"></i>
                 <div>
                   <span class="chip-label">Wind Speed</span>
-                  <strong id="speaker-chip-wind">-- km/h</strong>
+                  <strong id="speaker-chip-wind">14 km/h</strong>
                 </div>
               </div>
               <div class="highlight-chip">
                 <i data-lucide="activity"></i>
                 <div>
                   <span class="chip-label">AQI Index</span>
-                  <strong id="speaker-chip-aqi">--</strong>
+                  <strong id="speaker-chip-aqi">142 (Moderate)</strong>
+                </div>
+              </div>
+              <div class="highlight-chip">
+                <i data-lucide="clock"></i>
+                <div>
+                  <span class="chip-label">Rain Time</span>
+                  <strong id="speaker-chip-rain-time">No Active Rain</strong>
+                </div>
+              </div>
+              <div class="highlight-chip">
+                <i data-lucide="gauge-circle"></i>
+                <div>
+                  <span class="chip-label">Rain Speed</span>
+                  <strong id="speaker-chip-rain-speed">0.0 mm/h</strong>
                 </div>
               </div>
               <div class="highlight-chip">
                 <i data-lucide="cloud-rain"></i>
                 <div>
-                  <span class="chip-label">Rainfall Time</span>
-                  <strong id="speaker-chip-rain">--</strong>
+                  <span class="chip-label">Rain Amount</span>
+                  <strong id="speaker-chip-rain-amount">0.0 mm (0.00 cm)</strong>
                 </div>
               </div>
             </div>
@@ -677,7 +698,7 @@
                 <i data-lucide="message-square-quote"></i> Live Spoken Script Preview:
               </div>
               <div id="speaker-transcript-text" class="transcript-text">
-                Click "Speak Weather Report" to listen to current temperature, wind speed, AQI, and rain timings in English or Hindi.
+                Live weather report for New Delhi, Delhi NCR. Current temperature is 32°C, feeling like 34°C with Sunny & Clear. Today's maximum temperature is 35°C and minimum temperature is 24°C. Sunrise at 06:05 AM and sunset at 07:12 PM. Wind speed is 14 kilometers per hour. AQI is 142, Moderate. Rain Details: No active rain expected currently. Current rain speed: 0.0 millimeter per hour, or 0.00 centimeter per hour and recorded rainfall amount: 0.0 millimeter, or 0.00 centimeter.
               </div>
             </div>
           </div>

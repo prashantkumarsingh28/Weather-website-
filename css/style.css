@@ -679,6 +679,32 @@ body {
   font-weight: 700;
 }
 
+.rain-time-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rain-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease;
+}
+
+.rain-live-dot.pulsing {
+  animation: rainDotPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes rainDotPulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* Search Dropdown */
 .search-results {
   position: absolute;
@@ -2064,8 +2090,8 @@ i[data-lucide]:hover {
 /* Highlights Grid Chips */
 .speaker-highlights {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.85rem;
   margin-bottom: 1.25rem;
 }
 
