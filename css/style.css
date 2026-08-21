@@ -2052,6 +2052,21 @@ i[data-lucide]:hover {
   color: var(--text-main);
 }
 
+.speaker-city-badge {
+  background: rgba(2, 132, 199, 0.12);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(2, 132, 199, 0.3);
+  padding: 0.2rem 0.65rem;
+  border-radius: 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.1);
+  transition: all 0.3s ease;
+}
+
 .speaker-subtitle {
   font-size: 0.82rem;
   color: var(--text-muted);

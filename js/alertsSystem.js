@@ -42,7 +42,7 @@ class AlertsSystem {
     }
 
     // 2. Heavy Monsoon Downpour & Flood Advisory
-    if (precip >= 8 || category === "rainy" || (region.includes("Coastal") && humidity > 82 && precip > 2)) {
+    if (precip >= 8 || (precip > 2 && category === "rainy")) {
       alerts.push({
         id: "monsoon_flood",
         level: precip >= 25 ? "RED" : "ORANGE",

@@ -347,6 +347,9 @@ async function selectCity(city, autoSwitchTab = true) {
     }
 
     // Update Weather Voice Speaker Widget Data
+    if (!weatherSpeaker) {
+      try { weatherSpeaker = new WeatherSpeaker(); } catch(e) {}
+    }
     if (weatherSpeaker) {
       weatherSpeaker.updateWidgetData(data);
     }
@@ -494,6 +497,7 @@ function updateHeroDashboard(data) {
   // Live Rain Intensity & Precipitation Alert Card
   const rainAlertCard = document.getElementById('rain-intensity-alert');
   const rInfo = data.rainInfo || (typeof WeatherAPI !== 'undefined' ? WeatherAPI.getRainIntensityInfo(data.precipitation || 0, data.condition) : null);
+  const accStatus = (typeof WeatherAPI !== 'undefined' && WeatherAPI.getAccurateRainStatus) ? WeatherAPI.getAccurateRainStatus(data) : null;
 
   if (rainAlertCard && rInfo) {
     rainAlertCard.classList.remove('hidden');
@@ -505,79 +509,26 @@ function updateHeroDashboard(data) {
     const timeEl = document.getElementById('rain-time-val');
     const timeTextEl = document.getElementById('rain-time-text');
     const liveDotEl = document.getElementById('rain-live-dot');
+    const rainAlertIcon = document.getElementById('rain-alert-icon');
 
     const isRaining = rInfo.isRaining;
     const hasDailyRain = (rInfo.amountMm > 0);
 
-    let rainTimeStr = "";
-    let dotColor = "#10b981"; // green
-    let isPulsing = false;
-
-    if (isRaining) {
-      // 1. Rain is currently active
-      let clearTime = null;
-      if (data.hourly && Array.isArray(data.hourly)) {
-        const nextClear = data.hourly.find(h => h && (h.pop < 25) && (!h.condition || !h.condition.toLowerCase().includes('rain')));
-        if (nextClear) clearTime = nextClear.time;
-      }
-      if (clearTime) {
-        rainTimeStr = `Currently Raining (Expected to clear by ${clearTime})`;
-      } else {
-        rainTimeStr = `Currently Raining (Live Active Rain)`;
-      }
-      dotColor = "#ef4444"; // alert red
-      isPulsing = true;
-    } else if (hasDailyRain) {
-      // 2. Rain has stopped! (Daily rain recorded or recent rain ended)
-      let lastRainTime = null;
-      if (data.hourly && Array.isArray(data.hourly)) {
-        const pastRain = data.hourly.filter(h => h && (h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain')))).pop();
-        if (pastRain) lastRainTime = pastRain.time;
-      }
-      if (lastRainTime) {
-        rainTimeStr = `Rain Stopped (Cleared around ${lastRainTime})`;
-      } else {
-        rainTimeStr = `Rain Stopped (No active rain currently)`;
-      }
-      dotColor = "#f59e0b"; // amber / stopped
-      isPulsing = false;
-    } else if (data.hourly && Array.isArray(data.hourly)) {
-      // 3. Rain expected later today
-      const upcomingRain = data.hourly.find(h => h && (h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain'))));
-      if (upcomingRain) {
-        rainTimeStr = `Rain Expected around ${upcomingRain.time} (${upcomingRain.pop || 60}% Chance)`;
-        dotColor = "#3b82f6"; // blue
-      } else {
-        rainTimeStr = `No Rain Expected Today (Sky Clear)`;
-        dotColor = "#10b981"; // green
-      }
-    } else {
-      // 4. Default no rain
-      rainTimeStr = `No Active Rain Expected Currently`;
-      dotColor = "#10b981";
-    }
+    const rainTimeStr = accStatus ? accStatus.statusText : (isRaining ? "Currently Raining" : (hasDailyRain ? "Rain Stopped" : "No Active Rain"));
+    const dotColor = accStatus ? accStatus.dotColor : (isRaining ? "#ef4444" : (hasDailyRain ? "#f59e0b" : "#10b981"));
+    const isPulsing = accStatus ? accStatus.isPulsing : isRaining;
 
     if (badgeEl) {
-      if (isRaining) {
-        badgeEl.textContent = rInfo.intensityEn || 'Rain Alert';
-        badgeEl.style.backgroundColor = rInfo.color || '#dc2626';
-      } else if (hasDailyRain) {
-        badgeEl.textContent = 'Rain Stopped';
-        badgeEl.style.backgroundColor = '#f59e0b';
-      } else {
-        badgeEl.textContent = 'No Active Rain';
-        badgeEl.style.backgroundColor = '#0284c7';
-      }
+      badgeEl.textContent = accStatus ? accStatus.badgeText : (isRaining ? (rInfo.intensityEn || 'Rain Alert') : (hasDailyRain ? 'Rain Stopped' : 'No Active Rain'));
+      badgeEl.style.backgroundColor = accStatus ? accStatus.badgeBg : (isRaining ? (rInfo.color || '#dc2626') : (hasDailyRain ? '#f59e0b' : '#0284c7'));
     }
 
     if (titleEl) {
-      if (isRaining) {
-        titleEl.textContent = `${rInfo.intensityEn || 'Rain Alert'} Active (${data.city})`;
-      } else if (hasDailyRain) {
-        titleEl.textContent = `Rain Stopped - Cleared in ${data.city}`;
-      } else {
-        titleEl.textContent = `Live Rain & Precipitation Status (${data.city})`;
-      }
+      titleEl.textContent = accStatus ? accStatus.titleText : (isRaining ? `${rInfo.intensityEn || 'Rain Alert'} Active (${data.city})` : (hasDailyRain ? `Rain Stopped - Cleared in ${data.city}` : `Live Rain & Precipitation Status (${data.city})`));
+    }
+
+    if (rainAlertIcon && accStatus && accStatus.icon) {
+      rainAlertIcon.setAttribute('data-lucide', accStatus.icon);
     }
 
     if (amountEl) {
@@ -1160,13 +1111,14 @@ function setupSearchEngine() {
       currentSearchResultsMap.set(c.name.toLowerCase(), c);
     });
 
-    // 2. Fetch Live Geocoding API if query length >= 2
+    // 2. Fetch Live Geocoding API for Indian locations if query length >= 2
     if (cleanQuery.length >= 2) {
       try {
         const geoResults = await WeatherAPI.searchCityGeocoding(cleanQuery);
         if (geoResults && geoResults.length > 0) {
           geoResults.forEach(g => {
-            if (!currentSearchResultsMap.has(g.name.toLowerCase())) {
+            const isIndian = !g.country || g.country.toLowerCase() === 'india';
+            if (isIndian && !currentSearchResultsMap.has(g.name.toLowerCase())) {
               currentSearchResultsMap.set(g.name.toLowerCase(), g);
               combinedMatches.push(g);
             }
@@ -1293,7 +1245,7 @@ function toggleWeatherSpeaker() {
   }
 
   if (weatherSpeaker) {
-    const data = currentWeatherData || weatherSpeaker.currentData || (typeof WeatherAPI !== 'undefined' ? WeatherAPI.generateFallbackData(currentCity || { name: "New Delhi", state: "Delhi NCR" }) : null);
+    const data = (typeof currentWeatherData !== 'undefined' && currentWeatherData && currentWeatherData.city) ? currentWeatherData : weatherSpeaker.getCurrentData();
 
     if (weatherSpeaker.isSpeaking) {
       weatherSpeaker.stop();
@@ -1302,6 +1254,7 @@ function toggleWeatherSpeaker() {
     }
   }
 }
+window.toggleWeatherSpeaker = toggleWeatherSpeaker;
 
 function setSpeakerLanguage(lang) {
   if (!weatherSpeaker) {
@@ -1311,12 +1264,13 @@ function setSpeakerLanguage(lang) {
   }
   if (weatherSpeaker) {
     weatherSpeaker.setLanguage(lang);
-    const data = currentWeatherData || weatherSpeaker.currentData;
+    const data = (typeof currentWeatherData !== 'undefined' && currentWeatherData && currentWeatherData.city) ? currentWeatherData : weatherSpeaker.getCurrentData();
     if (data) {
       weatherSpeaker.updateWidgetData(data);
     }
   }
 }
+window.setSpeakerLanguage = setSpeakerLanguage;
 
 function changeSpeakerVoice(voiceURI) {
   if (!weatherSpeaker) {

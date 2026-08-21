@@ -146,11 +146,14 @@ class WeatherSpeaker {
       }
     }
 
-    // Auto-populate widget data chips immediately on instantiation
+    // Auto-populate widget data chips immediately on instantiation with active city data
     if (typeof window !== 'undefined') {
       setTimeout(() => {
-        this.updateWidgetData(null);
         this.populateVoiceDropdown();
+        const liveData = (typeof currentWeatherData !== 'undefined' && currentWeatherData && currentWeatherData.city) ? currentWeatherData : this.getCurrentData();
+        if (liveData) {
+          this.updateWidgetData(liveData);
+        }
       }, 50);
     }
   }
@@ -223,9 +226,12 @@ class WeatherSpeaker {
 
     this.populateVoiceDropdown();
 
-    const data = this.currentData || (typeof currentWeatherData !== 'undefined' && currentWeatherData ? currentWeatherData : null);
-    this.updateTranscriptPreview(data);
-    this.updateWidgetData(data);
+    const data = (typeof currentWeatherData !== 'undefined' && currentWeatherData && currentWeatherData.city) ? currentWeatherData : (this.currentData || this.getCurrentData());
+    if (data) {
+      this.currentData = data;
+      this.updateTranscriptPreview(data);
+      this.updateWidgetData(data);
+    }
 
     if (this.isSpeaking) {
       this.stop();
@@ -324,26 +330,13 @@ class WeatherSpeaker {
 
   getRainInfo(data, lang) {
     const rInfo = data.rainInfo || (typeof WeatherAPI !== 'undefined' ? WeatherAPI.getRainIntensityInfo(data.precipitation || 0, data.condition) : null);
+    const accStatus = (typeof WeatherAPI !== 'undefined' && WeatherAPI.getAccurateRainStatus) ? WeatherAPI.getAccurateRainStatus(data) : null;
 
-    let rainTimeHi = "आज वर्षा की संभावना कम है";
-    let rainTimeEn = "No active rain expected currently";
+    let rainTimeHi = accStatus ? accStatus.statusHi : "आज वर्षा की संभावना कम है";
+    let rainTimeEn = accStatus ? accStatus.statusText : "No active rain expected currently";
     let isRaining = rInfo ? rInfo.isRaining : false;
     const amountMmVal = rInfo ? (typeof rInfo.amountMm === 'number' ? rInfo.amountMm : (rInfo.amountVal || 0)) : 0;
     let hasDailyRain = amountMmVal > 0;
-
-    if (isRaining) {
-      rainTimeHi = "वर्तमान समय में वर्षा जारी है";
-      rainTimeEn = "Currently Raining";
-    } else if (hasDailyRain) {
-      rainTimeHi = "वर्षा रुक गई है और मौसम साफ़ हो रहा है";
-      rainTimeEn = "Rain has stopped and sky is clearing";
-    } else if (data.hourly && Array.isArray(data.hourly)) {
-      const rainHour = data.hourly.find(h => h && (h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain'))));
-      if (rainHour) {
-        rainTimeHi = `${this.formatTimeHindi(rainHour.time)} वर्षा का अनुमान है`;
-        rainTimeEn = `Rain expected around ${rainHour.time}`;
-      }
-    }
 
     const amountCmVal = rInfo ? (rInfo.amountCm || (amountMmVal / 10).toFixed(2)) : "0.00";
 
@@ -463,12 +456,16 @@ class WeatherSpeaker {
 
   getRainInfoRomanized(data) {
     const rInfo = data.rainInfo || (typeof WeatherAPI !== 'undefined' ? WeatherAPI.getRainIntensityInfo(data.precipitation || 0, data.condition) : null);
+    const amountMmVal = rInfo ? (typeof rInfo.amountMm === 'number' ? rInfo.amountMm : (rInfo.amountVal || 0)) : 0;
+    const hasDailyRain = amountMmVal > 0;
 
     let rainTimeRom = "aaj varsha ki sambhavna kam hai";
     let isRaining = rInfo ? rInfo.isRaining : false;
 
     if (isRaining) {
       rainTimeRom = "vartaman samay me varsha jaari hai";
+    } else if (hasDailyRain) {
+      rainTimeRom = "varsha ruk gayi hai aur mausam saaf ho raha hai";
     } else if (data.hourly && Array.isArray(data.hourly)) {
       const rainHour = data.hourly.find(h => h && (h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain'))));
       if (rainHour) {
@@ -476,7 +473,6 @@ class WeatherSpeaker {
       }
     }
 
-    const amountMmVal = rInfo ? (typeof rInfo.amountMm === 'number' ? rInfo.amountMm : (rInfo.amountVal || 0)) : 0;
     const amountCmVal = rInfo ? (rInfo.amountCm || (amountMmVal / 10).toFixed(2)) : "0.00";
 
     const speedMmVal = rInfo ? (typeof rInfo.speedMm === 'number' ? rInfo.speedMm : (data.precipitation || 0)) : 0;
@@ -525,12 +521,26 @@ class WeatherSpeaker {
     return `${cityName} ${stateName} ke liye taaza mausam samachar. Vartaman tapman ${tempStr} degree Celsius hai, jo ${feelsStr} degree Celsius jaisa mehsus ho raha hai. Aaj ka adhiktam tapman ${maxTemp} degree aur nyuntam tapman ${minTemp} degree Celsius rahega. Mausam ${conditionRom} hai. Suryoday ${sunriseRom} aur suryast ${sunsetRom} hoga. Hawa ki gati ${windSpeed} kilometer prati ghanta hai. Vayu gunvatta suchkank ${aqiVal} yani ${aqiLabelRom} sthiti me hai. ${rainTextRom}`;
   }
 
-  generateSpeechText(data, lang = this.lang) {
-    if (!data) data = this.currentData || (typeof currentWeatherData !== 'undefined' && currentWeatherData ? currentWeatherData : null);
-    if (!data && typeof WeatherAPI !== 'undefined') {
-      const activeCity = (typeof currentCity !== 'undefined' && currentCity) ? currentCity : { name: "New Delhi", state: "Delhi NCR", region: "Capital Metro", lat: 28.6139, lon: 77.2090 };
-      data = WeatherAPI.generateFallbackData(activeCity);
+  getCurrentData() {
+    if (typeof currentWeatherData !== 'undefined' && currentWeatherData && currentWeatherData.city) {
+      return currentWeatherData;
     }
+    if (typeof currentCity !== 'undefined' && currentCity && currentCity.name) {
+      if (typeof WeatherAPI !== 'undefined' && WeatherAPI.generateFallbackData) {
+        return WeatherAPI.generateFallbackData(currentCity);
+      }
+    }
+    if (this.currentData && this.currentData.city) {
+      return this.currentData;
+    }
+    if (typeof WeatherAPI !== 'undefined' && WeatherAPI.generateFallbackData) {
+      return WeatherAPI.generateFallbackData({ name: "New Delhi", state: "Delhi NCR", region: "Capital Metro", lat: 28.6139, lon: 77.2090 });
+    }
+    return null;
+  }
+
+  generateSpeechText(data, lang = this.lang) {
+    if (!data || !data.city) data = this.getCurrentData();
     if (!data) return "";
 
     const cityName = data.city || "New Delhi";
@@ -680,11 +690,7 @@ class WeatherSpeaker {
   }
 
   speak(data) {
-    if (!data) data = this.currentData || (typeof currentWeatherData !== 'undefined' && currentWeatherData ? currentWeatherData : null);
-    if (!data && typeof WeatherAPI !== 'undefined') {
-      const activeCity = (typeof currentCity !== 'undefined' && currentCity) ? currentCity : { name: "New Delhi", state: "Delhi NCR", region: "Capital Metro", lat: 28.6139, lon: 77.2090 };
-      data = WeatherAPI.generateFallbackData(activeCity);
-    }
+    if (!data || !data.city) data = (typeof currentWeatherData !== 'undefined' && currentWeatherData && currentWeatherData.city) ? currentWeatherData : this.getCurrentData();
     if (!data) return;
 
     this.currentData = data;
@@ -707,19 +713,25 @@ class WeatherSpeaker {
     if (this.lang === 'hi') {
       const rawDevanagari = this.generateSpeechText(data, 'hi');
       const devanagariText = this.replaceNumbersWithHindiWords(rawDevanagari, false);
+      const romanizedText = this.generateRomanizedHindiSpeechText(data);
 
       if (this.selectedVoiceURI === 'tts_stream') {
         this.speakAudioFallback(devanagariText, 'hi');
         return;
       }
 
-      const bestHiVoice = this.getBestVoice('hi');
-      if (bestHiVoice) {
+      const nativeVoice = this.getBestVoice('hi');
+      if (nativeVoice) {
         const sentences = this.splitIntoSentences(devanagariText);
-        this.speakWebSpeechAPIQueue(sentences, 'hi');
+        if (sentences.length > 0) {
+          this.speakWebSpeechAPIQueue(sentences, 'hi');
+        }
       } else {
-        // High quality native Hindi TTS audio stream (tl=hi)
-        this.speakAudioFallback(devanagariText, 'hi');
+        // Dual-Engine Fallback: speak Romanized Hindi phonetics via English/Native voice for 100% audio compatibility
+        const sentences = this.splitIntoSentences(romanizedText);
+        if (sentences.length > 0) {
+          this.speakWebSpeechAPIQueue(sentences, 'hi');
+        }
       }
     } else {
       const textToSpeak = this.formatPointForSpeech(writtenText, 'en');
@@ -757,10 +769,23 @@ class WeatherSpeaker {
     this.isSpeaking = true;
     this.updateUIState(true);
 
+    // Keep-alive timer for Chrome SpeechSynthesis bug (prevents mid-speech freezing)
+    if (this.keepAliveTimer) clearInterval(this.keepAliveTimer);
+    this.keepAliveTimer = setInterval(() => {
+      if (this.isSpeaking && this.synth && this.synth.speaking) {
+        if (this.synth.paused) {
+          try { this.synth.resume(); } catch(e) {}
+        }
+      } else if (!this.isSpeaking && this.keepAliveTimer) {
+        clearInterval(this.keepAliveTimer);
+        this.keepAliveTimer = null;
+      }
+    }, 250);
+
     let idx = 0;
     this.loadVoices();
     const voice = this.getBestVoice(lang);
-    const PAUSE_DURATION_MS = 80; // Decreased pause after puranviram (। / |) for fast, continuous speech flow
+    const PAUSE_DURATION_MS = 100;
 
     // Store utterances in array to prevent Chrome V8 Garbage Collection mid-speech!
     this.activeUtterances = [];
@@ -770,22 +795,43 @@ class WeatherSpeaker {
       if (idx >= sentences.length) {
         this.isSpeaking = false;
         this.activeUtterances = [];
+        if (this.keepAliveTimer) {
+          clearInterval(this.keepAliveTimer);
+          this.keepAliveTimer = null;
+        }
         this.updateUIState(false);
         return;
       }
 
-      const sentenceText = sentences[idx++];
-      const utterance = new SpeechSynthesisUtterance(sentenceText);
+      let sentenceText = sentences[idx++];
+      // Clean and format text for smooth TTS reading
+      if (lang === 'hi') {
+        sentenceText = sentenceText
+          .replace(/°C/g, " डिग्री सेल्सियस ")
+          .replace(/km\/h/g, " किलोमीटर प्रति घंटा ")
+          .replace(/mm\/h/g, " मिलीमीटर प्रति घंटा ")
+          .replace(/%/g, " प्रतिशत ")
+          .replace(/--/g, " ");
+      } else {
+        sentenceText = sentenceText
+          .replace(/°C/g, " degrees Celsius ")
+          .replace(/km\/h/g, " kilometers per hour ")
+          .replace(/mm\/h/g, " millimeters per hour ")
+          .replace(/%/g, " percent ")
+          .replace(/--/g, " ");
+      }
+
+      const utterance = new SpeechSynthesisUtterance(sentenceText.trim());
       this.activeUtterances.push(utterance); // Prevent GC
       
       if (voice) {
         utterance.voice = voice;
-        utterance.lang = voice.lang || (lang === 'hi' ? 'hi' : 'en');
+        utterance.lang = voice.lang || (lang === 'hi' ? 'hi-IN' : 'en-IN');
       } else {
-        utterance.lang = (lang === 'hi') ? 'hi' : 'en';
+        utterance.lang = (lang === 'hi') ? 'hi-IN' : 'en-IN';
       }
 
-      utterance.rate = 1.0; // Strict constant speaking speed
+      utterance.rate = 1.0;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
 
@@ -799,6 +845,9 @@ class WeatherSpeaker {
       };
 
       utterance.onerror = (e) => {
+        if (e && (e.error === 'canceled' || e.error === 'interrupted')) {
+          return;
+        }
         console.warn("Web Speech API sentence error:", e);
         if (!this.isSpeaking) return;
         this.pauseTimer = setTimeout(() => {
@@ -809,21 +858,24 @@ class WeatherSpeaker {
       };
 
       try {
-        this.synth.speak(utterance);
-        if (this.synth.paused) {
+        if (this.synth) {
           this.synth.resume();
+          this.synth.speak(utterance);
         }
       } catch (e) {
         console.error("Speech Synthesis exception:", e);
-        this.speakAudioFallback(sentences.join(' '), lang);
+        if (this.isSpeaking) {
+          speakNextSentence();
+        }
       }
     };
 
+    // 100ms pause after synth.cancel() to let browser speech engine settle cleanly
     setTimeout(() => {
       if (this.isSpeaking) {
         speakNextSentence();
       }
-    }, 40);
+    }, 100);
   }
 
   speakAudioFallback(text, lang = 'hi') {
@@ -838,7 +890,7 @@ class WeatherSpeaker {
 
     const targetLang = (lang === 'hi') ? 'hi' : 'en';
     let idx = 0;
-    const PAUSE_DURATION_MS = 80; // Decreased pause for audio stream fallback
+    const PAUSE_DURATION_MS = 80;
 
     const playNext = () => {
       if (!this.isSpeaking) return;
@@ -854,7 +906,7 @@ class WeatherSpeaker {
 
       this.audioFallback = new Audio();
       this.audioFallback.src = url;
-      this.audioFallback.playbackRate = 1.0; // Strict constant playback rate
+      this.audioFallback.playbackRate = 1.0;
 
       this.audioFallback.onended = () => {
         if (!this.isSpeaking) return;
@@ -886,6 +938,11 @@ class WeatherSpeaker {
     this.isSpeaking = false;
     this.activeUtterances = [];
 
+    if (this.keepAliveTimer) {
+      clearInterval(this.keepAliveTimer);
+      this.keepAliveTimer = null;
+    }
+
     if (this.pauseTimer) {
       clearTimeout(this.pauseTimer);
       this.pauseTimer = null;
@@ -910,17 +967,18 @@ class WeatherSpeaker {
     this.updateUIState(false);
   }
 
-  toggle(data = this.currentData) {
+  toggle(data) {
     if (this.isSpeaking) {
       this.stop();
-    } else if (data) {
+    } else {
+      if (!data || !data.city) data = this.getCurrentData();
       this.speak(data);
     }
   }
 
   updateTranscriptPreview(data) {
     const transcriptEl = document.getElementById('speaker-transcript-text');
-    if (!data) data = this.currentData || (typeof currentWeatherData !== 'undefined' ? currentWeatherData : null);
+    if (!data || !data.city) data = this.getCurrentData();
     if (transcriptEl && data) {
       transcriptEl.textContent = this.generateSpeechText(data, this.lang);
     }
@@ -956,14 +1014,17 @@ class WeatherSpeaker {
   }
 
   updateWidgetData(data) {
-    if (!data) data = this.currentData || (typeof currentWeatherData !== 'undefined' && currentWeatherData ? currentWeatherData : null);
-    if (!data && typeof WeatherAPI !== 'undefined') {
-      const activeCity = (typeof currentCity !== 'undefined' && currentCity) ? currentCity : { name: "New Delhi", state: "Delhi NCR", region: "Capital Metro", lat: 28.6139, lon: 77.2090 };
-      data = WeatherAPI.generateFallbackData(activeCity);
-    }
+    if (!data || !data.city) data = (typeof currentWeatherData !== 'undefined' && currentWeatherData && currentWeatherData.city) ? currentWeatherData : this.getCurrentData();
     if (!data) return;
 
     this.currentData = data;
+
+    // Update City Badge in Speaker Card Header
+    const cityBadgeEl = document.getElementById('speaker-city-badge');
+    if (cityBadgeEl) {
+      cityBadgeEl.textContent = `📍 ${data.city}${data.state ? ', ' + data.state : ''}`;
+    }
+
     const tempEl = document.getElementById('speaker-chip-temp');
     const windEl = document.getElementById('speaker-chip-wind');
     const aqiEl = document.getElementById('speaker-chip-aqi');
@@ -990,16 +1051,10 @@ class WeatherSpeaker {
     }
 
     if (rainTimeEl) {
-      let shortRain = "No Active Rain";
-      if (rInfo && rInfo.isRaining) {
-        shortRain = "Raining Now";
-      } else if (rInfo && rInfo.amountMm > 0) {
-        shortRain = "Rain Stopped";
-      } else if (data.hourly && Array.isArray(data.hourly)) {
-        const rHour = data.hourly.find(h => h && (h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain'))));
-        if (rHour) {
-          shortRain = `${rHour.time}`;
-        }
+      const accStatus = (typeof WeatherAPI !== 'undefined' && WeatherAPI.getAccurateRainStatus) ? WeatherAPI.getAccurateRainStatus(data) : null;
+      let shortRain = accStatus ? (accStatus.shortStatusText || accStatus.statusText) : "No Active Rain";
+      if (this.lang === 'hi' && accStatus && accStatus.statusHi) {
+        shortRain = accStatus.statusHi;
       }
       rainTimeEl.textContent = shortRain;
     }

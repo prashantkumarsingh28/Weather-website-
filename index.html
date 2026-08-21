@@ -522,17 +522,17 @@
             <!-- Live Rain Intensity & Precipitation Alert Bar -->
             <div id="rain-intensity-alert" class="rain-intensity-alert-card">
               <div class="rain-alert-header">
-                <i data-lucide="cloud-rain-wind" id="rain-alert-icon"></i>
+                <i data-lucide="cloud-sun" id="rain-alert-icon"></i>
                 <div>
-                  <span class="rain-alert-badge" id="rain-intensity-badge">Rainfall Metrics</span>
+                  <span class="rain-alert-badge" id="rain-intensity-badge" style="background-color: #0284c7;">No Active Rain</span>
                   <div class="rain-alert-title" id="rain-alert-title">Live Rain & Precipitation Status</div>
                 </div>
               </div>
               <div class="rain-alert-meta">
-                <div class="r-meta-item">Rainfall Amount: <strong id="rain-amount-val">14.5 mm (1.45 cm)</strong></div>
-                <div class="r-meta-item">Rain Speed: <strong id="rain-speed-val">4.5 mm/h</strong></div>
-                <div class="r-meta-item">Rain Probability: <strong id="rain-chance-val">85%</strong></div>
-                <div class="r-meta-item">Rain Time: <strong id="rain-time-val" class="rain-time-live"><span class="rain-live-dot" id="rain-live-dot"></span><span id="rain-time-text">Currently Raining</span></strong></div>
+                <div class="r-meta-item">Rainfall Amount: <strong id="rain-amount-val">0.0 mm (0.00 cm)</strong></div>
+                <div class="r-meta-item">Rain Speed: <strong id="rain-speed-val">0.0 mm/h</strong></div>
+                <div class="r-meta-item">Rain Probability: <strong id="rain-chance-val">10%</strong></div>
+                <div class="r-meta-item">Rain Time: <strong id="rain-time-val" class="rain-time-live"><span class="rain-live-dot" id="rain-live-dot" style="background-color: #10b981;"></span><span id="rain-time-text">No active rain (Sun is out)</span></strong></div>
               </div>
             </div>
 
@@ -615,7 +615,10 @@
                   <i data-lucide="volume-2"></i>
                 </div>
                 <div>
-                  <h3 class="speaker-title">Weather Voice Speaker & Narration</h3>
+                  <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                    <h3 class="speaker-title" style="margin: 0;">Weather Voice Speaker & Narration</h3>
+                    <span id="speaker-city-badge" class="speaker-city-badge">📍 Loading...</span>
+                  </div>
                   <p class="speaker-subtitle">Live voice updates for Temperature, Wind Speed, AQI, Rain Time, Rain Speed & Rain Amount</p>
                 </div>
               </div>
@@ -698,7 +701,7 @@
                 <i data-lucide="message-square-quote"></i> Live Spoken Script Preview:
               </div>
               <div id="speaker-transcript-text" class="transcript-text">
-                Live weather report for New Delhi, Delhi NCR. Current temperature is 32°C, feeling like 34°C with Sunny & Clear. Today's maximum temperature is 35°C and minimum temperature is 24°C. Sunrise at 06:05 AM and sunset at 07:12 PM. Wind speed is 14 kilometers per hour. AQI is 142, Moderate. Rain Details: No active rain expected currently. Current rain speed: 0.0 millimeter per hour, or 0.00 centimeter per hour and recorded rainfall amount: 0.0 millimeter, or 0.00 centimeter.
+                Selecting location weather report...
               </div>
             </div>
           </div>
@@ -1218,15 +1221,15 @@
   </div>
 
   <!-- JavaScript Modules with Relative Paths -->
-  <script src="./js/citiesData.js?v=3.0"></script>
-  <script src="./js/climateData.js?v=3.0"></script>
-  <script src="./js/newsData.js?v=3.0"></script>
-  <script src="./js/weatherApi.js?v=3.0"></script>
-  <script src="./js/weather3d.js?v=3.0"></script>
-  <script src="./js/alertsSystem.js?v=3.0"></script>
-  <script src="./js/audioEngine.js?v=3.0"></script>
-  <script src="./js/weatherSpeaker.js?v=3.0"></script>
-  <script src="./js/app.js?v=3.0"></script>
+  <script src="./js/citiesData.js?v=8.0"></script>
+  <script src="./js/climateData.js?v=8.0"></script>
+  <script src="./js/newsData.js?v=8.0"></script>
+  <script src="./js/weatherApi.js?v=8.0"></script>
+  <script src="./js/weather3d.js?v=8.0"></script>
+  <script src="./js/alertsSystem.js?v=8.0"></script>
+  <script src="./js/audioEngine.js?v=8.0"></script>
+  <script src="./js/weatherSpeaker.js?v=8.0"></script>
+  <script src="./js/app.js?v=8.0"></script>
   
   <script>
     lucide.createIcons();

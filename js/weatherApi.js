@@ -26,19 +26,26 @@ class WeatherAPI {
   static async searchCityGeocoding(query) {
     if (!query || query.trim().length < 2) return [];
     try {
-      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query.trim())}&count=10&language=en&format=json`;
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query.trim())}&count=25&language=en&format=json`;
       const res = await fetch(url);
       if (!res.ok) return [];
       const data = await res.json();
       if (!data || !data.results || !Array.isArray(data.results)) return [];
 
-      return data.results.map(item => ({
+      // Filter strictly for locations within India (country_code === 'IN' or country === 'India')
+      const indianResults = data.results.filter(item => {
+        const cc = (item.country_code || '').toUpperCase();
+        const countryName = (item.country || '').toLowerCase();
+        return cc === 'IN' || countryName === 'india';
+      });
+
+      return indianResults.map(item => ({
         name: item.name,
-        state: item.admin1 || item.admin2 || item.country || "District",
-        country: item.country || "India",
+        state: item.admin1 || item.admin2 || "India",
+        country: "India",
         lat: item.latitude,
         lon: item.longitude,
-        region: item.admin1 ? `${item.admin1}, ${item.country || ''}` : (item.country || "Global")
+        region: item.admin1 ? `${item.admin1}, India` : "India"
       }));
     } catch (e) {
       console.warn("Geocoding API error:", e);
@@ -276,27 +283,28 @@ class WeatherAPI {
 
   static getRainIntensityInfo(precip, conditionStr = "", dailyPrecipSum = 0) {
     const condLower = (conditionStr || "").toLowerCase();
-    const isRainCondition = condLower.includes("rain") || condLower.includes("drizzle") || 
-                            condLower.includes("shower") || condLower.includes("downpour") || 
-                            condLower.includes("torrent") || condLower.includes("thunderstorm") ||
-                            condLower.includes("squall");
+    const activeRainKeywords = ["rain", "drizzle", "shower", "downpour", "torrent", "thunderstorm", "squall"];
+    const hasRainKeyword = activeRainKeywords.some(kw => condLower.includes(kw));
+    const isNegatedRain = condLower.includes("no rain") || condLower.includes("stopped") || condLower.includes("cleared") || condLower.includes("without rain");
     const precipVal = parseFloat(precip) || 0;
-    const isRaining = precipVal > 0 || isRainCondition;
+    
+    // Rain is only active if precip > 0 or active rain condition without negation
+    const isRaining = (precipVal > 0) || (hasRainKeyword && !isNegatedRain);
 
     // Calculate rain speed (mm/h and cm/h)
     let speedMm = 0;
     if (precipVal > 0) {
       speedMm = precipVal;
-    } else if (isRainCondition) {
-      speedMm = condLower.includes("heavy") || condLower.includes("torrent") ? 14.5 : condLower.includes("light") || condLower.includes("drizzle") ? 1.8 : 5.4;
+    } else if (isRaining) {
+      speedMm = condLower.includes("heavy") || condLower.includes("torrent") ? 14.5 : (condLower.includes("light") || condLower.includes("drizzle") ? 1.8 : 5.4);
     }
     const speedCm = (speedMm / 10).toFixed(2);
     const speedText = `${speedMm.toFixed(1)} mm/h (${speedCm} cm/h)`;
 
     // Calculate rainfall amount (mm and cm)
     let amountMm = parseFloat(dailyPrecipSum) || 0;
-    if (amountMm <= 0) {
-      amountMm = speedMm > 0 ? (speedMm * 2.5) : (isRainCondition ? (condLower.includes("heavy") || condLower.includes("torrent") ? 24.5 : condLower.includes("light") ? 3.5 : 12.0) : 0);
+    if (amountMm <= 0 && isRaining) {
+      amountMm = speedMm > 0 ? (speedMm * 2.5) : (condLower.includes("heavy") || condLower.includes("torrent") ? 24.5 : (condLower.includes("light") ? 3.5 : 12.0));
     }
     const amountCm = (amountMm / 10).toFixed(2);
     const amountText = `${amountMm.toFixed(1)} mm (${amountCm} cm)`;
@@ -319,6 +327,24 @@ class WeatherAPI {
       };
     }
 
+    if (!isRaining && amountMm > 0) {
+      return {
+        isRaining: false,
+        intensityEn: "Rain Stopped",
+        intensityHi: "वर्षा रुक गई है",
+        amountMm: amountMm,
+        amountCm: amountCm,
+        amountVal: amountMm,
+        amountText: amountText,
+        speedMm: 0,
+        speedCm: "0.00",
+        speedText: "0.0 mm/h (0.00 cm/h)",
+        color: "#f59e0b",
+        descEn: `Rain stopped with total ${amountText} daily rainfall.`,
+        descHi: `वर्षा रुक गई है, कुल ${amountText} वर्षा दर्ज की गई।`
+      };
+    }
+
     let intensityEn = "Light Rain Alert";
     let intensityHi = "हल्की वर्षा चेतावनी";
     let color = "#0284c7";
@@ -334,7 +360,7 @@ class WeatherAPI {
     }
 
     return {
-      isRaining: isRaining,
+      isRaining: true,
       intensityEn: intensityEn,
       intensityHi: intensityHi,
       amountMm: amountMm,
@@ -350,6 +376,210 @@ class WeatherAPI {
     };
   }
 
+  static getAccurateRainStatus(data) {
+    if (!data) {
+      return {
+        statusText: "No active rain (Sun is out)",
+        statusHi: "कोई सक्रिय वर्षा नहीं (धूप निकली है)",
+        shortStatusText: "No Active Rain",
+        badgeText: "No Active Rain",
+        badgeBg: "#0284c7",
+        titleText: "Live Rain & Precipitation Status",
+        dotColor: "#10b981",
+        isPulsing: false,
+        icon: "sun"
+      };
+    }
+
+    const precipVal = parseFloat(data.precipitation) || 0;
+    const rInfo = data.rainInfo || this.getRainIntensityInfo(precipVal, data.condition);
+    const isRaining = rInfo ? rInfo.isRaining : (precipVal > 0);
+    const hasDailyRain = rInfo ? (rInfo.amountMm > 0) : false;
+    const isDayTime = typeof data.isDay === 'boolean' ? data.isDay : (new Date().getHours() >= 6 && new Date().getHours() < 19);
+    const cloudCover = typeof data.cloudCover === 'number' ? data.cloudCover : 45;
+    const condLower = (data.condition || "").toLowerCase();
+    const cityName = data.city || "New Delhi";
+
+    // 1. ACTIVE RAIN
+    if (isRaining) {
+      let clearTime = null;
+      if (data.hourly && Array.isArray(data.hourly)) {
+        const nextClear = data.hourly.find(h => h && (h.pop < 25) && (!h.condition || !h.condition.toLowerCase().includes('rain')));
+        if (nextClear) clearTime = nextClear.time;
+      }
+      const statusText = clearTime ? `Currently Raining (Expected to clear by ${clearTime})` : `Currently Raining (Live Active Rain)`;
+      const statusHi = clearTime ? `वर्षा जारी है (${clearTime} तक समाप्त होने का अनुमान)` : `वर्षा जारी है (लाइव सक्रिय वर्षा)`;
+
+      return {
+        statusText: statusText,
+        statusHi: statusHi,
+        shortStatusText: "Raining Now",
+        badgeText: rInfo ? (rInfo.intensityEn || "Rain Alert") : "Rain Alert",
+        badgeBg: rInfo ? (rInfo.color || "#dc2626") : "#dc2626",
+        titleText: `${(rInfo && rInfo.intensityEn) || 'Rain Alert'} Active (${cityName})`,
+        dotColor: "#ef4444",
+        isPulsing: true,
+        icon: "cloud-rain-wind"
+      };
+    }
+
+    // 2. RAIN STOPPED (Daily rain recorded or rain ended recently)
+    if (hasDailyRain) {
+      let lastRainTime = null;
+      if (data.hourly && Array.isArray(data.hourly)) {
+        const pastRain = data.hourly.filter(h => h && (h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain')))).pop();
+        if (pastRain) lastRainTime = pastRain.time;
+      }
+
+      if (isDayTime) {
+        // DAYTIME
+        if (cloudCover < 35 || condLower.includes("clear") || condLower.includes("sunny") || condLower.includes("sun")) {
+          const timeDetails = lastRainTime ? ` (Cleared around ${lastRainTime})` : "";
+          return {
+            statusText: `Rain stopped & Sun out${timeDetails}`,
+            statusHi: `वर्षा रुक गई है और धूप निकल आई है${timeDetails}`,
+            shortStatusText: "Rain Stopped & Sun Out",
+            badgeText: "Rain Stopped & Sun Out",
+            badgeBg: "#f59e0b",
+            titleText: `Rain Stopped - Sun Out in ${cityName}`,
+            dotColor: "#f59e0b",
+            isPulsing: false,
+            icon: "sun"
+          };
+        } else if (cloudCover <= 70 || condLower.includes("partly")) {
+          const timeDetails = lastRainTime ? ` (Cleared around ${lastRainTime})` : "";
+          return {
+            statusText: `Rain stopped & Sun is out with clouds${timeDetails}`,
+            statusHi: `वर्षा रुक गई है (धूप और बादल छाये हैं)${timeDetails}`,
+            shortStatusText: "Rain Stopped (Sun & Clouds)",
+            badgeText: "Rain Stopped",
+            badgeBg: "#f59e0b",
+            titleText: `Rain Stopped - Cleared in ${cityName}`,
+            dotColor: "#f59e0b",
+            isPulsing: false,
+            icon: "cloud-sun"
+          };
+        } else {
+          // Overcast / cloudy
+          return {
+            statusText: `Rain stopped (Sun likely to be out soon)`,
+            statusHi: `वर्षा रुक गई है (जल्द ही धूप निकलने की संभावना है)`,
+            shortStatusText: "Rain Stopped (Sun Likely Soon)",
+            badgeText: "Rain Stopped",
+            badgeBg: "#f59e0b",
+            titleText: `Rain Stopped - Cleared in ${cityName}`,
+            dotColor: "#f59e0b",
+            isPulsing: false,
+            icon: "cloud-sun"
+          };
+        }
+      } else {
+        // NIGHTTIME - DO NOT DISPLAY SUN OUT
+        if (cloudCover < 40 || condLower.includes("clear")) {
+          return {
+            statusText: `Rain stopped (Clear night sky)`,
+            statusHi: `वर्षा रुक गई है (रात का आसमान साफ़ है)`,
+            shortStatusText: "Rain Stopped (Clear Night)",
+            badgeText: "Rain Stopped",
+            badgeBg: "#f59e0b",
+            titleText: `Rain Stopped - Cleared in ${cityName}`,
+            dotColor: "#f59e0b",
+            isPulsing: false,
+            icon: "moon"
+          };
+        } else {
+          return {
+            statusText: `Rain stopped (Clouds present at night)`,
+            statusHi: `वर्षा रुक गई है (रात में बादल छाये हैं)`,
+            shortStatusText: "Rain Stopped (Cloudy Night)",
+            badgeText: "Rain Stopped",
+            badgeBg: "#f59e0b",
+            titleText: `Rain Stopped - Cleared in ${cityName}`,
+            dotColor: "#f59e0b",
+            isPulsing: false,
+            icon: "cloud-moon"
+          };
+        }
+      }
+    }
+
+    // 3. NO ACTIVE RAIN (Not raining for 1 hour or more)
+    let upcomingRain = null;
+    if (data.hourly && Array.isArray(data.hourly)) {
+      upcomingRain = data.hourly.find(h => h && (h.pop >= 30 || (h.condition && h.condition.toLowerCase().includes('rain'))));
+    }
+    const rainExpectedSuffix = upcomingRain ? ` - Rain expected around ${upcomingRain.time} (${upcomingRain.pop || 60}% Chance)` : "";
+    const rainExpectedHi = upcomingRain ? ` - ${upcomingRain.time} के आसपास वर्षा की संभावना (${upcomingRain.pop || 60}%)` : "";
+
+    if (isDayTime) {
+      // DAYTIME
+      if (cloudCover < 30 || condLower.includes("clear") || condLower.includes("sunny") || condLower.includes("sun")) {
+        return {
+          statusText: `No active rain (Sun is out)${rainExpectedSuffix}`,
+          statusHi: `कोई सक्रिय वर्षा नहीं (धूप निकली है)${rainExpectedHi}`,
+          shortStatusText: "No Active Rain (Sun Out)",
+          badgeText: "No Active Rain",
+          badgeBg: "#0284c7",
+          titleText: `Live Rain & Precipitation Status (${cityName})`,
+          dotColor: "#10b981",
+          isPulsing: false,
+          icon: "sun"
+        };
+      } else if (cloudCover <= 70 || condLower.includes("partly")) {
+        return {
+          statusText: `No active rain (Sun is out with clouds)${rainExpectedSuffix}`,
+          statusHi: `कोई सक्रिय वर्षा नहीं (बादलों के साथ धूप है)${rainExpectedHi}`,
+          shortStatusText: "No Active Rain (Sun & Clouds)",
+          badgeText: "No Active Rain",
+          badgeBg: "#0284c7",
+          titleText: `Live Rain & Precipitation Status (${cityName})`,
+          dotColor: "#10b981",
+          isPulsing: false,
+          icon: "cloud-sun"
+        };
+      } else {
+        return {
+          statusText: `No active rain (Clouds are present)${rainExpectedSuffix}`,
+          statusHi: `कोई सक्रिय वर्षा नहीं (बादल मौजूद हैं)${rainExpectedHi}`,
+          shortStatusText: "No Active Rain (Cloudy)",
+          badgeText: "No Active Rain",
+          badgeBg: "#0284c7",
+          titleText: `Live Rain & Precipitation Status (${cityName})`,
+          dotColor: "#10b981",
+          isPulsing: false,
+          icon: "cloud"
+        };
+      }
+    } else {
+      // NIGHTTIME - DO NOT DISPLAY SUN OUT
+      if (cloudCover < 40 || condLower.includes("clear")) {
+        return {
+          statusText: `No active rain (Clear night sky)${rainExpectedSuffix}`,
+          statusHi: `कोई सक्रिय वर्षा नहीं (रात का आसमान साफ़ है)${rainExpectedHi}`,
+          shortStatusText: "No Active Rain (Clear Night)",
+          badgeText: "No Active Rain",
+          badgeBg: "#0284c7",
+          titleText: `Live Rain & Precipitation Status (${cityName})`,
+          dotColor: "#10b981",
+          isPulsing: false,
+          icon: "moon"
+        };
+      } else {
+        return {
+          statusText: `No active rain (Clouds present at night)${rainExpectedSuffix}`,
+          statusHi: `कोई सक्रिय वर्षा नहीं (रात में बादल छाये हैं)${rainExpectedHi}`,
+          shortStatusText: "No Active Rain (Cloudy Night)",
+          badgeText: "No Active Rain",
+          badgeBg: "#0284c7",
+          titleText: `Live Rain & Precipitation Status (${cityName})`,
+          dotColor: "#10b981",
+          isPulsing: false,
+          icon: "cloud-moon"
+        };
+      }
+    }
+  }
+
   static generateFallbackData(city) {
     let baseTemp = 31;
     let condition = "Partly Cloudy";
@@ -361,20 +591,20 @@ class WeatherAPI {
       condition = "Clear Sky";
       icon = "sun";
       category = "sunny";
-    } else if (city.region.includes("Coastal") || city.region.includes("Metro")) {
-      baseTemp = 32;
-      condition = "Moderate Rain";
-      icon = "cloud-rain";
-      category = "rainy";
     } else if (city.region.includes("Desert")) {
       baseTemp = 37;
       condition = "Sunny & Hot";
       icon = "sun";
       category = "sunny";
+    } else {
+      baseTemp = 31;
+      condition = "Partly Cloudy";
+      icon = "cloud-sun";
+      category = "sunny";
     }
 
-    const precipVal = category === 'rainy' ? 14.5 : 0;
-    const dailyPrecipSum = category === 'rainy' ? 24.5 : 0;
+    const precipVal = 0;
+    const dailyPrecipSum = 0;
     const rainInfo = this.getRainIntensityInfo(precipVal, condition, dailyPrecipSum);
 
     const hourly = [];
@@ -386,8 +616,8 @@ class WeatherAPI {
       hourly.push({
         time: `${formattedHour}:00 ${ampm}`,
         temp: baseTemp + (i % 5) - 2,
-        pop: category === 'rainy' ? 85 : 15,
-        code: category === 'rainy' ? 65 : 0,
+        pop: 15,
+        code: 0,
         icon: icon,
         condition: condition
       });
@@ -405,7 +635,7 @@ class WeatherAPI {
         minTemp: baseTemp - 6 - Math.floor(Math.random() * 2),
         condition: condition,
         icon: icon,
-        rainProb: category === 'rainy' ? 70 : 20,
+        rainProb: 20,
         uv: 8
       });
     }
